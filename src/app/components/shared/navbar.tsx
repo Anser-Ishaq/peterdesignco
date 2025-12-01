@@ -2,8 +2,9 @@
 import React, { useState } from 'react';
 import CustomDrawer from './customDrawer';
 import Image from "next/image";
-
+import { useRouter } from 'next/navigation';
 const Navbar = () => {
+    const router = useRouter();
       const [open, setOpen] = useState(false);
       const showDrawer = () => {
     setOpen(true);
@@ -11,7 +12,7 @@ const Navbar = () => {
     return (
         <>
             <div className='absolute flex items-center justify-center z-10 w-full'>
-                <div className=' mx-auto px-4 flex justify-between items-center w-full py-5 bg-white/30 backdrop-blur-md'>
+                <div className=' mx-auto px-4 flex justify-between items-center w-full py-5 bg-white/30 backdrop-blur-sm'>
                     <div>
                         <Image
                             src="/logo.svg"
@@ -22,13 +23,13 @@ const Navbar = () => {
                     </div>
                     <div>
                         <ul className='hidden lg:flex gap-10 text-lg font-medium text-primary'>
-                            <li className='cursor-pointer'>Home</li>
-                            <li className='cursor-pointer'>About</li>
-                            <li className='cursor-pointer'>Contact</li>
-                            <li className='cursor-pointer'>Careers</li>
-                            <li className='cursor-pointer'>Team</li>
-                            <li className='cursor-pointer'>Shop</li>
-                            <li className='cursor-pointer'>Mdeling</li>
+                            <li className='cursor-pointer' onClick={() => router.push('/')}>Home</li>
+                            <li className='cursor-pointer' onClick={() => router.push('/about')}>About</li>
+                            <li className='cursor-pointer' onClick={() => router.push('/contact')}>Contact</li>
+                            <li className='cursor-pointer' onClick={() => router.push('/careers')}>Careers</li>
+                            <li className='cursor-pointer' onClick={() => router.push('/team')}>Team</li>
+                            <li className='cursor-pointer' onClick={() => router.push('/shop')}>Shop</li>
+                            <li className='cursor-pointer' onClick={() => router.push('/modeling')}>Mdeling</li>
                         </ul>
                         <Image
                             className='lg:hidden cursor-pointer'

@@ -1,16 +1,14 @@
-'use client'
-
 import Image from "next/image";
 import CustomButton from "./components/ui/customButton/customButton";
 import ModelViewer from "./components/sections/modelViewer";
-import { Swiper, SwiperSlide } from 'swiper/react';
-import 'swiper/css';
-import CustomInput from "./components/ui/customInput/customInput";
-import CustomTextarea from "./components/ui/customTextarea/customTextarea";
 import Accordion from "./components/shared/accordion";
+import ContentBlock from "./components/shared/contentBlock";
+import Services from "./components/shared/services";
+import Testimonials from "./components/shared/testimonials";
+import ContactForm from "./components/shared/contactForm";
 const Home = () => {
 
-  const latestPRojectArr = [
+  const latestProjectArr = [
     { id: 1, src: '/p1.svg', rowSpan: '' },
     { id: 2, src: '/p2.svg', rowSpan: 'row-span-2' },
     { id: 3, src: '/p3.svg', rowSpan: '' },
@@ -19,63 +17,6 @@ const Home = () => {
     { id: 6, src: '/p1.svg', rowSpan: '' },
   ];
 
-  const servicesArr = [
-    { id: 1, src: '/serviceIcon1.svg', title: 'Material Selection' },
-    { id: 2, src: '/serviceIcon2.svg', title: 'space planning' },
-    { id: 3, src: '/serviceIcon3.svg', title: '3D renderings' },
-    { id: 4, src: '/serviceIcon4.svg', title: 'project management' },
-  ]
-
-  const testimonialsArr = [
-    {
-      id: 1,
-      imgSrc: '/testimonial-1.svg',
-      review: 'Peter Design Co. transformed our office into a modern and functional space. Their attention to detail and professionalism were outstanding.',
-      name: 'John Doe',
-      position: 'CEO, Company A',
-      stars: 5
-    },
-    {
-      id: 2,
-      imgSrc: '/testimonial-1.svg',
-      review: 'Peter Design Co. transformed our office into a modern and functional space. Their attention to detail and professionalism were outstanding.',
-      name: 'John Doe',
-      position: 'CEO, Company A',
-      stars: 5
-    },
-    {
-      id: 3,
-      imgSrc: '/testimonial-1.svg',
-      review: 'Peter Design Co. transformed our office into a modern and functional space. Their attention to detail and professionalism were outstanding.',
-      name: 'John Doe',
-      position: 'CEO, Company A',
-      stars: 5
-    },
-    {
-      id: 4,
-      imgSrc: '/testimonial-1.svg',
-      review: 'Peter Design Co. transformed our office into a modern and functional space. Their attention to detail and professionalism were outstanding.',
-      name: 'John Doe',
-      position: 'CEO, Company A',
-      stars: 5
-    },
-    {
-      id: 5,
-      imgSrc: '/testimonial-1.svg',
-      review: 'Peter Design Co. transformed our office into a modern and functional space. Their attention to detail and professionalism were outstanding.',
-      name: 'John Doe',
-      position: 'CEO, Company A',
-      stars: 5
-    },
-    {
-      id: 6,
-      imgSrc: '/testimonial-1.svg',
-      review: 'Peter Design Co. transformed our office into a modern and functional space. Their attention to detail and professionalism were outstanding.',
-      name: 'John Doe',
-      position: 'CEO, Company A',
-      stars: 5
-    },
-  ]
   return (
     <>
       {/* hero section */}
@@ -98,23 +39,22 @@ const Home = () => {
       </div>
 
       {/* about section */}
-      <div className="container mx-auto px-4 pt-[140px] grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-27">
-        <div className="h-full">
-          <Image
-            src="/decor.svg"
-            alt="Home Image"
-            height={100}
-            width={555}
-            className="object-cover border-8 lg:border-12 border-gold w-full"
-          />
-        </div>
-        <div className="flex flex-col justify-center items-start">
-          <p className="text-base font-medium text-black mb-5">About us</p>
-          <p className="text-xl sm:text-5xl font-bold text-black mb-10">About Peter Design Co.</p>
-          <p className="text-base font-normal mb-10 w-full lg:max-w-[80%]">We are a leading turnkey interior design and fit-out company in Pakistan, specializing in turnkey projects. We provide the best turnkey interior design and fit-out services in Pakistan, with extensive experience working on various types of premise.</p>
-          <CustomButton text="Read More" icon="/arrow-forward.svg" animation="slide"/>
-        </div>
-      </div>
+      <ContentBlock
+        imgSrc="/decor.svg"
+        imgWidth={'w-full'}
+        heading="About Peter Design Co."
+        subHeading="About Us"
+        paragraphs={[
+          { id: 1, text: "We are a leading turnkey interior design and fit-out company in Pakistan, specializing in turnkey projects. We provide the best turnkey interior design and fit-out services in Pakistan, with extensive experience working on various types of premise." },
+        ]}
+        button={{
+          show: true,
+          text: "Read More",
+          icon: "/arrow-forward.svg", animation: 'slide',
+        }}
+      />
+      {/* END about section */}
+
       {/* model section */}
       <div className="mt-[140px] bg-[url('/model-bg.svg')] bg-cover bg-center w-full bg-accent">
         <div className="container mx-auto px-4 py-20 h-full grid grid-cols-1 md:grid-cols-6">
@@ -174,12 +114,12 @@ const Home = () => {
       {/* END model section */}
 
       {/* portfolio section */}
-      <div className="container mx-auto px-4 pt-[140px]">
+      <div className="container mx-auto px-4 pt-[80px] md:pt-[140px]">
         <div>
           <p className="text-base font-medium mb-5">LATEST PROJECTS</p>
           <p className="text-xl md:text-4xl font-bold mb-10">Made It With Passion.</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-[200px]">
-            {latestPRojectArr.map((item, index) => (
+            {latestProjectArr.map((item, index) => (
               <div
                 key={index}
                 className={`${item.rowSpan} relative overflow-hidden`}
@@ -199,146 +139,32 @@ const Home = () => {
       {/* END portfolio section */}
 
       {/* services section */}
-      <div className="pt-[140px] lg:mb-[140px]">
-        <div className="relative w-full">
-          <div className="hidden lg:block w-full min-h-[435px] relative">
-            <Image
-              src="/services-bg.svg"
-              alt="services bg"
-              fill
-              className="object-cover"
-            />
-          </div>
-          <div className="lg:absolute inset-0 bg-[url('/services-bg.svg')] bg-cover bg-center w-full py-14 lg:py-0">
-            <div className="container mx-auto px-4">
-              <div className=" lg:mt-[116px]">
-                <p className="text-base font-medium mb-5 text-white">SERVICES</p>
-                <p className="text-2xl md:text-4xl font-bold mb-10 text-white">Our Services</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {servicesArr.map((item) => (
-                    <div key={item.id} className="flex flex-col justify-start items-start gap-[50px] bg-white px-5 pt-[60px] pb-[30px] shadow-2xl">
-                      <Image src={item.src} width={80} height={80} alt={item.title} className="" />
-                      <p className="font-semibold text-black text-xl">{item.title}</p>
-                      <CustomButton text="Let's Start" icon="/arrow-forward.svg" backgroundColor={'bg-transparent!'} border={'border-0'} padding={'px-0 py-3'} animation="slide" />
-                    </div>
-                  ))}
-                </div>
-
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Services />
       {/* END services se */}
 
       {/* testimonials */}
-      <div className="container mx-auto px-4 pt-[140px]">
-        <div>
-          <div className="flex flex-col justify-center items-center">
-            <p className="text-base font-medium mb-5 text-black">TESTIMONIALS</p>
-            <p className="text-2xl md:text-4xl font-bold mb-10 text-black">What Our Client Say’s</p>
-          </div>
-          <div>
-            <Swiper
-              spaceBetween={50}
-              slidesPerView={3}
-              breakpoints={{
-                300: {
-                  slidesPerView: 1,
-                  spaceBetween: 20,
-                },
-                640: {
-                  slidesPerView: 1,
-                  spaceBetween: 20,
-                },
-                // 768: {
-                //   slidesPerView: 4,
-                //   spaceBetween: 40,
-                // },
-                1024: {
-                  slidesPerView: 3,
-                  spaceBetween: 50,
-                },
-              }}
-            >
-              {testimonialsArr.map((item) => (
-                <SwiperSlide key={item.id} className="p-6 bg-gray">
-                  <div className="flex flex-col gap-5 rounded-2xl ">
-                    <div className="flex justify-between items-center">
-                      <Image src={item.imgSrc} width={80} height={80} alt={item.name} className="" />
-                      <div className="flex flex-row gap-1 justify-end">
-                        {Array.from({ length: item.stars }).map((_, index) => (
-                          <Image key={index} src="/star.svg" width={20} height={20} alt="star" />
-                        ))}
-                      </div>
-                    </div>
-                    <p className="font-normal text-xl">{item.review}</p>
-                    <div className="flex flex-row justify-between items-center">
-                      <div>
-                        <p className="font-extrabold text-base">{item.name}</p>
-                        <p className="font-medium text-sm">{item.position}</p>
-                      </div>
-
-                    </div>
-                  </div>
-                </SwiperSlide>
-              ))}
-            </Swiper>
-
-          </div>
-        </div>
-      </div>
+      <Testimonials />
       {/* END testimonials */}
 
       {/* contact */}
-      <div className="mt-[140px] bg-[url('/model-bg.svg')] bg-cover bg-center w-full bg-accent">
-        <div className="container mx-auto px-4 py-16 md:py-24">
-          <div className="grid grid-cols-1 lg:grid-cols-2">
-            <div className="flex flex-col justify-start items-start">
-              <p className="text-base font-medium mb-5 text-black">Contact Us</p>
-              <p className="text-2xl md:text-4xl font-bold mb-10 text-black">Lets Start a New Project</p>
-              <p className="lg:w-90  font-normal text-xl mb-20">Now Lets Start a New Project Lets Start a New Project Lets Start a New Project Lets Start a New Project Lets Start a New Project Lets Start a New Project</p>
-              <div className="flex flex-col md:flex-row justify-between gap-20 font-normal text-xl">
-                <div>
-                  <p>Phone Number</p>
-                  <p>0313-1234567</p>
-                  <p>0313-1234567</p>
-                </div>
-                <div>
-                  <p>Email</p>
-                  <p>itsme@design.com</p>
-                  <p>itsme@design.com</p>
-                </div>
-
-              </div>
-
-            </div>
-            <div className="flex flex-col gap-10 mt-10">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-5">
-                <CustomInput width="w-full" height="h-[50px]" placeholder="Name" />
-                <CustomInput width="w-full" height="h-[50px]" placeholder="Phone" />
-              </div>
-              <CustomInput width="w-full" height="h-[50px]" placeholder="Email" />
-              <CustomTextarea width="w-full" height="h-[180px]" placeholder="Message" />
-            </div>
-          </div>
-        </div>
+      <div className="mt-[140px]">
+        <ContactForm />
       </div>
       {/* contact */}
       {/* accordion section */}
       <div className="bg-[url('/model-bg.svg')] bg-cover bg-center w-full">
-      <div className="container mx-auto px-4 py-[140px]">
-        <div className="flex flex-col justify-center items-center">
-          <p className="text-base font-medium mb-5 text-black">FAQs</p>
-          <p className="text-2xl md:text-4xl font-bold mb-10 text-black">Frequently Asked Questions</p>
-          <Accordion />
+        <div className="container mx-auto px-4 py-[140px]">
+          <div className="flex flex-col justify-center items-center">
+            <p className="text-base font-medium mb-5 text-black">FAQs</p>
+            <p className="text-2xl md:text-4xl font-bold mb-10 text-black">Frequently Asked Questions</p>
+            <Accordion />
+          </div>
         </div>
-      </div>
       </div>
       {/* accordion section */}
 
       {/* sale section */}
-  <div className="relative w-full h-screen hidden md:block">
+      <div className="relative w-full h-screen hidden md:block">
         <Image
           src="/sale.svg"
           alt="sale Image"

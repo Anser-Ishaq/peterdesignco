@@ -1,4 +1,4 @@
-
+'use client'
 type inputProps = {
     layout?: string;
     border?: string;

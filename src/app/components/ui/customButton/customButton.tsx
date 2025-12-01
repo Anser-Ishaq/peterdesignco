@@ -1,4 +1,4 @@
-
+'use client'
 type buttonProps = {
     layout?: string;
     border?: string;
