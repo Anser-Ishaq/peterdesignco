@@ -1,7 +1,6 @@
 'use client';
 import React, { useState } from 'react';
 import CustomDrawer from './customDrawer';
-import Logo from '/logo.svg';
 import Image from "next/image";
 
 const Navbar = () => {

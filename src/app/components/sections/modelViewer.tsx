@@ -1,6 +1,6 @@
 'use client'
 import { FC, Suspense, useRef, useLayoutEffect, useEffect, useMemo } from 'react';
-import { Canvas, useFrame, useLoader, useThree, invalidate } from '@react-three/fiber';
+import { Canvas, useFrame, useThree, invalidate } from '@react-three/fiber';
 import { OrbitControls, useGLTF, useFBX, useProgress, Html, Environment, ContactShadows } from '@react-three/drei';
 // import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import * as THREE from 'three';
@@ -49,11 +49,7 @@ const Loader: FC<{ placeholderSrc?: string }> = ({ placeholderSrc }) => {
   if (!active && placeholderSrc) return null;
   return (
     <Html center>
-      {placeholderSrc ? (
-        <img src={placeholderSrc} width={128} height={128} className="blur-lg rounded-lg" />
-      ) : (
-        `${Math.round(progress)} %`
-      )}
+      {placeholderSrc && `${Math.round(progress)} %`}
     </Html>
   );
 };

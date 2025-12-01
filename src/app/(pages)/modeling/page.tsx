@@ -1,9 +1,9 @@
 'use client';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import * as THREE from 'three';
-import { Canvas, useFrame, useThree, useLoader } from '@react-three/fiber';
-import { OrbitControls, Box, Plane, Text, useTexture } from '@react-three/drei';
-import { Menu, RotateCcw, Move, Square, Package, Eye, EyeOff, Palette, Home } from 'lucide-react';
+import { Canvas, useThree } from '@react-three/fiber';
+import { OrbitControls, Box, Plane} from '@react-three/drei';
+import { Menu, RotateCcw, Package, Eye, EyeOff, Palette, Home } from 'lucide-react';
 import FurnitureModel from '@/app/components/sections/FurnutireModel';
 
 // Types for the application
@@ -12,12 +12,12 @@ interface Point {
   y: number;
 }
 
-interface FloorPlanLine {
-  id: string;
-  start: Point;
-  end: Point;
-  length: string;
-}
+// interface FloorPlanLine {
+//   id: string;
+//   start: Point;
+//   end: Point;
+//   length: string;
+// }
 
 interface RoomItem {
   id: string;
@@ -163,7 +163,7 @@ const RoomItemComponent: React.FC<{
 }> = ({ item, isSelected, onSelect, onPositionChange, roomBounds }) => {
   const meshRef = useRef<THREE.Group>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [_, setDragStart] = useState({ x: 0, y: 0 });
   const { camera, gl, raycaster } = useThree();
 
   // Create texture if available
@@ -451,7 +451,7 @@ const FloorPlanCanvas: React.FC<{
   roomBounds: { width: number; depth: number };
 }> = ({ floorPlan, onFloorPlanChange, roomBounds }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
+  // const [isDrawing, setIsDrawing] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 

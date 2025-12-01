@@ -1,7 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import type { DrawerProps, RadioChangeEvent } from 'antd';
-import { Button, Drawer, Radio, Space } from 'antd';
+import {  Drawer } from 'antd';
 
 
 type CustomDrawerProps = {
@@ -12,18 +12,9 @@ type CustomDrawerProps = {
 const CustomDrawer: React.FC<CustomDrawerProps> = ({ open, setOpen }: CustomDrawerProps) => {
     const [placement, setPlacement] = useState<DrawerProps['placement']>('left');
 
-    const showDrawer = () => {
-        setOpen(true);
-    };
-
     const onClose = () => {
         setOpen(false);
     };
-
-    const onChange = (e: RadioChangeEvent) => {
-        setPlacement(e.target.value);
-    };
-
     return (
         <>
             <Drawer
