@@ -48,14 +48,14 @@ const page = () => {
     return (
         <>
             {/* hero section */}
-            <div className="relative w-full h-screen">
+            <div className="relative w-full h-[440px] md:h-[600px] lg:h-[700px]">
                 <Image
                     src="/contact-bg.svg"
                     alt="contact Image"
                     fill
-                    className="object-cover opacity-90 h-[440px] md:h-full"
+                    className="object-cover opacity-90"
                 />
-                <div className="absolute top-2/5 z-20 w-full flex flex-col gap-6 justify-center items-center text-white">
+                <div className="absolute inset-0 z-20 flex flex-col gap-6 justify-center items-center text-white px-4">
                     <p className="font-medium text-base">Join Our Team</p>
                     <p className="font-bold text-2xl lg:text-5xl text-center max-w-[800px]">WE Are Hiring Now!</p>
                 </div>
@@ -67,8 +67,8 @@ const page = () => {
                 subHeading="Dedicated Team"
                 paragraphs={[
                     { id: 1, text: "We are a leading turnkey interior design and fit-out company in Pakistan, specializing in turnkey projects. We provide the best turnkey interior design and fit-out services in Pakistan, with extensive experience working on various types of premise." },
-                    { id: 1, text: "We are a leading turnkey interior design and fit-out company in Pakistan, specializing in turnkey projects. " },
-                    { id: 1, text: "We are a leading turnkey interior design and fit-out company in Pakistan, specializing in turnkey projects. We provide the best turnkey interior design and fit-out services in Pakistan, with extensive experience working on various types of premise." },
+                    { id: 2, text: "We are a leading turnkey interior design and fit-out company in Pakistan, specializing in turnkey projects. " },
+                    { id: 3, text: "We are a leading turnkey interior design and fit-out company in Pakistan, specializing in turnkey projects. We provide the best turnkey interior design and fit-out services in Pakistan, with extensive experience working on various types of premise." },
                 ]}
                 button={{
                     show: true,

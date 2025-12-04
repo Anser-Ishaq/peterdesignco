@@ -10,7 +10,6 @@ type buttonProps = {
     textColor?: string;
     padding?: string;
     icon?: string;
-    animation?: "lift" | "scale" | "slide" | "pulse" | "none";
 }
 
 const CustomButton = ({ layout,
@@ -22,30 +21,29 @@ const CustomButton = ({ layout,
     backgroundColor = 'bg-gold',
     textColor = 'text-black',
     padding = 'py-3 px-8',
-    icon,
-    animation = "none" }: buttonProps) => {
-    const animations: Record<string, string> = {
-        slide: "transition-all duration-300 hover:px-10",
-        pulse: "transition-all duration-300 hover:brightness-110 hover:shadow-md",
-        none: ""
-    };
+    icon }: buttonProps) => {
     return (
         <div className={`${layout} relative`}>
             <button
                 onClick={onClick}
-                className={`flex justify-center items-center  cursor-pointer gap-2.5 whitespace-nowrap 
+                className={`group relative flex justify-center items-center cursor-pointer gap-2.5 whitespace-nowrap overflow-hidden
                     ${height} ${width} ${padding} ${backgroundColor} ${textColor} ${border}
-                    ${animations[animation]}
                 `}
             >
-                {text}
+                {/* Background slide effect */}
+                <span className="absolute inset-0 bg-gray transform -translate-x-full group-hover:translate-x-0 transition-transform duration-500 ease-out"></span>
+                
+                {/* Text content */}
+                <span className="relative z-10 transition-colors duration-500 group-hover:text-gold">
+                    {text}
+                </span>
+                
+                {/* Icon */}
                 {icon && (
                     <img
                         src={icon}
                         alt="icon"
-                        className={`transition-all duration-300 
-                            ${animation === "slide" ? "group-hover:translate-x-1" : ""}
-                        `}
+                        className="relative z-10 transition-all duration-500 group-hover:translate-x-1"
                     />
                 )}
             </button>
