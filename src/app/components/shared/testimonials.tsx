@@ -59,7 +59,10 @@ const Testimonials = () => {
                     <p className="text-2xl md:text-4xl font-bold mb-10 text-black">What Our Client Say’s</p>
                 </div>
                 <div>
-                    <Slider testimonialsArr={testimonialsArr} />
+                    <Slider
+                        variant="testimonial"
+                        testimonials={testimonialsArr}
+                    />
 
                 </div>
             </div>
