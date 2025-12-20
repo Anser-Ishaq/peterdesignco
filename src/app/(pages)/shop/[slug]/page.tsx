@@ -54,10 +54,10 @@ export default function Home({ params }: Prop) {
             <p className="text-xl font-semibold">{productDetail?.quality}</p>
             <div className="flex gap-2 lg:gap-3.5 items-center">
               <p className="text-xl lg:text-4xl font-semibold text-gold">
-                Rs.{productDetail?.pricing?.original}
+                Rs.{productDetail?.pricing?.sale}
               </p>
-              <p className="textlg lg:text-xl font-semibold text-dark-gray">
-                {productDetail?.pricing?.sale}
+              <p className="textlg lg:text-xl font-semibold text-dark-gray line-through">
+                {productDetail?.pricing?.original}
               </p>
               {productDetail?.pricing?.discountPercent && (
                 <p className="bg-purple h-10 py-3 px-5 text-white rounded-full flex items-center">
