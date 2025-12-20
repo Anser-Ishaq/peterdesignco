@@ -1,12 +1,7 @@
-const Home = ()=>{
-
-    return(
+export default function Home (){
+    return (
         <>
-        <div>
-            <div>
-                
-            </div>
-        </div>
+        CHECKOUT
         </>
     )
 }
