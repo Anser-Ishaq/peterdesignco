@@ -1,10 +1,10 @@
 "use client";
 import CustomButton from "@/app/components/ui/customButton/customButton";
 import Link from "next/link";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function VerifyOTPPage() {
+function VerifyOTPContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
@@ -231,5 +231,43 @@ export default function VerifyOTPPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Loading fallback component
+function VerifyOTPLoading() {
+  return (
+    <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div className="text-center">
+          <div className="mx-auto h-12 w-12 bg-gray-200 rounded-full flex items-center justify-center mb-4 animate-pulse">
+            <div className="h-6 w-6 bg-gray-300 rounded"></div>
+          </div>
+          <div className="h-8 bg-gray-200 rounded animate-pulse mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4 mx-auto"></div>
+        </div>
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          <div className="space-y-6">
+            <div className="flex justify-center space-x-3">
+              {[...Array(6)].map((_, index) => (
+                <div
+                  key={index}
+                  className="w-12 h-12 bg-gray-200 rounded-lg animate-pulse"
+                ></div>
+              ))}
+            </div>
+            <div className="h-12 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function VerifyOTPPage() {
+  return (
+    <Suspense fallback={<VerifyOTPLoading />}>
+      <VerifyOTPContent />
+    </Suspense>
   );
 }
