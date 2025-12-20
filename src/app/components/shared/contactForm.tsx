@@ -33,7 +33,7 @@ const ContactForm = () => {
                         </div>
                         <CustomInput width="w-full" height="h-[50px]" placeholder="Email" />
                         <CustomTextarea width="w-full" height="h-[150px]" placeholder="Message" />
-                        <CustomButton text="Submit" icon="/arrow-forward.svg" animation="slide" />
+                        <CustomButton text="Submit" icon="/arrow-forward.svg" />
 
                     </div>
                 </div>

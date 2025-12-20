@@ -22,6 +22,7 @@ interface Testimonial {
 interface ImageItem {
     id: number;
     imgSrc: string;
+    alt:string
 }
 
 interface TestimonialSliderProps extends CommonSliderProps {

@@ -104,8 +104,8 @@ const Home = () => {
               <Image src='/arrows.svg' width={88} height={206} alt="model arrows" />
             </div>
             <div className="flex flex-wrap gap-2">
-              <CustomButton text="BUY NOW" icon="/arrow-forward.svg" animation="slide" />
-              <CustomButton text="DESIGN YOUR OWN" icon="/arrow-forward.svg" animation="slide" backgroundColor={'bg-transparent!'} border={'border-1 border-gold'} />
+              <CustomButton text="BUY NOW" icon="/arrow-forward.svg" />
+              <CustomButton text="DESIGN YOUR OWN" icon="/arrow-forward.svg" backgroundColor={'bg-transparent!'} border={'border-1 border-gold'} />
             </div>
           </div>
         </div>
