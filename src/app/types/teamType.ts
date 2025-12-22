@@ -1,0 +1,19 @@
+export type teamMemberType = {
+    id:number,
+    name:string,
+    slug:string,
+    role:string,
+    position:string,
+    image:{
+        url:string,
+        alt?:string
+    },
+    bio?:string[],
+    socialLinks:{
+        linkedin?:string|null,
+        instagram?:string|null,
+        facebook?:string|null,
+    },
+    order?:number,
+    status?:string
+}

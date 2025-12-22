@@ -69,7 +69,6 @@ const ContentBlock: React.FC<ContentBlockProps> = ({
             <CustomButton
               text={button.text}
               icon={button.icon ?? "/arrow-forward.svg"}
-              animation={button.animation ?? "slide"}
               onClick={() => router.push(button.path ?? '/')}
             />
           )}
