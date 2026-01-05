@@ -18,6 +18,8 @@ type textareaProps = {
     cols?: number;
     maxLength?: number;
     resize?: 'none' | 'vertical' | 'horizontal' | 'both';
+    label?: string;
+    labelClassName?: string;
 }
 
 const CustomTextarea = ({ 
@@ -38,7 +40,9 @@ const CustomTextarea = ({
     rows = 4,
     cols,
     maxLength,
-    resize = 'vertical'
+    resize = 'vertical',
+    label,
+    labelClassName = 'block text-sm font-medium text-gray-700 mb-2'
 }: textareaProps) => {
 
     const resizeClass = resize === 'none' ? 'resize-none' : 
@@ -47,6 +51,12 @@ const CustomTextarea = ({
 
     return (
         <div className={`${layout} relative`}>
+            {label && (
+                <label htmlFor={id} className={labelClassName}>
+                    {label}
+                    {required && <span className="text-red-500 ml-1">*</span>}
+                </label>
+            )}
             <textarea
                 name={name}
                 id={id}

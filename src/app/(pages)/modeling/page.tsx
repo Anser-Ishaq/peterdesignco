@@ -1137,7 +1137,7 @@ const RoomDesigner: React.FC = () => {
             near: 0.1,
             far: 1000
           }}
-          style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+          style={{ background: '#CCCCCC' }}
           shadows
         >
           {/* Enhanced Lighting */}
