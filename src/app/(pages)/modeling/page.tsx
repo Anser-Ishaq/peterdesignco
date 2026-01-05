@@ -2,8 +2,8 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import * as THREE from 'three';
 import { Canvas, useThree } from '@react-three/fiber';
-import { OrbitControls, Box, Plane} from '@react-three/drei';
-import { Menu, RotateCcw, Package, Eye, EyeOff, Palette, Home } from 'lucide-react';
+import { OrbitControls, Box, Plane } from '@react-three/drei';
+import { RotateCcw, Package, Eye, EyeOff, Palette, Home, RotateCw } from 'lucide-react';
 import FurnitureModel from '@/app/components/sections/FurnutireModel';
 
 // Types for the application
@@ -11,13 +11,6 @@ interface Point {
   x: number;
   y: number;
 }
-
-// interface FloorPlanLine {
-//   id: string;
-//   start: Point;
-//   end: Point;
-//   length: string;
-// }
 
 interface RoomItem {
   id: string;
@@ -28,6 +21,8 @@ interface RoomItem {
   dimensions: { width: number; height: number; depth: number };
   color: string;
   textureUrl?: string;
+  isWallMounted?: boolean;
+  wallSide?: 'north' | 'south' | 'east' | 'west';
 }
 
 interface ItemTemplate {
@@ -38,6 +33,7 @@ interface ItemTemplate {
   color: string;
   textureUrl?: string;
   isDefault: boolean;
+  isWallMounted?: boolean;
 }
 
 interface RoomSettings {
@@ -59,18 +55,6 @@ interface RoomSettings {
   wallTexture: string;
   floorTexture: string;
   ceilingTexture: string;
-}
-
-interface FloorPlanPoint {
-  x: number;
-  y: number;
-  id: string;
-}
-
-interface CustomFloorPlan {
-  points: FloorPlanPoint[];
-  connections: { start: string; end: string; id: string }[];
-  isCustom: boolean;
 }
 
 // Available themes and textures
@@ -140,7 +124,8 @@ const DEFAULT_ITEMS: ItemTemplate[] = [
     type: 'tv',
     dimensions: { width: 1.2, height: 0.7, depth: 0.1 },
     color: '#000000',
-    isDefault: true
+    isDefault: true,
+    isWallMounted: true
   },
   {
     id: 'sofa-1',
@@ -150,6 +135,15 @@ const DEFAULT_ITEMS: ItemTemplate[] = [
     color: '#4169E1',
     textureUrl: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=400&fit=crop',
     isDefault: true
+  },
+  {
+    id: 'shelf-1',
+    name: 'Wall Shelf',
+    type: 'shelf',
+    dimensions: { width: 1.0, height: 0.2, depth: 0.3 },
+    color: '#A0522D',
+    isDefault: true,
+    isWallMounted: true
   }
 ];
 
@@ -159,12 +153,17 @@ const RoomItemComponent: React.FC<{
   isSelected: boolean;
   onSelect: (id: string) => void;
   onPositionChange: (id: string, position: { x: number; y: number; z: number }) => void;
+  onRotationChange: (id: string, rotation: { x: number; y: number; z: number }) => void;
+  onWallSideChange: (id: string, wallSide: 'north' | 'south' | 'east' | 'west') => void;
   roomBounds: { width: number; depth: number };
-}> = ({ item, isSelected, onSelect, onPositionChange, roomBounds }) => {
+  roomSettings: RoomSettings;
+}> = ({ item, isSelected, onSelect, onPositionChange, onRotationChange, onWallSideChange, roomBounds, roomSettings }) => {
   const meshRef = useRef<THREE.Group>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [_, setDragStart] = useState({ x: 0, y: 0 });
   const { camera, gl, raycaster } = useThree();
+  const [wallCollision, setWallCollision] = useState<string | null>(null);
+  const [dragStartY, setDragStartY] = useState<number | null>(null);
+  const [isMovingVertically, setIsMovingVertically] = useState(false);
 
   // Create texture if available
   const texture = useMemo(() => {
@@ -182,12 +181,18 @@ const RoomItemComponent: React.FC<{
     event.stopPropagation();
     setIsDragging(true);
     onSelect(item.id);
-
-    const rect = gl.domElement.getBoundingClientRect();
-    setDragStart({
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top
-    });
+    
+    if (item.isWallMounted) {
+      // Check if we're starting a vertical drag (right-click or shift+click)
+      if (event.button === 2 || event.shiftKey) {
+        setIsMovingVertically(true);
+        setDragStartY(event.clientY);
+      } else {
+        setIsMovingVertically(false);
+      }
+    } else {
+      setIsMovingVertically(false);
+    }
   };
 
   const handlePointerMove = useCallback((event: MouseEvent) => {
@@ -201,30 +206,110 @@ const RoomItemComponent: React.FC<{
 
     raycaster.setFromCamera(mouse, camera);
 
-    // Create a ground plane for intersection
-    const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-    const intersectionPoint = new THREE.Vector3();
-    raycaster.ray.intersectPlane(groundPlane, intersectionPoint);
+    if (item.isWallMounted && item.wallSide) {
+      // For wall-mounted items
+      let newPosition = { ...item.position };
+      let collisionWall = null;
 
-    if (intersectionPoint) {
-      // Apply room boundaries
-      const halfWidth = roomBounds.width / 2 - item.dimensions.width / 2;
-      const halfDepth = roomBounds.depth / 2 - item.dimensions.depth / 2;
+      if (isMovingVertically && dragStartY !== null) {
+        // Vertical movement - adjust Y position based on mouse movement
+        const deltaY = (event.clientY - dragStartY) * -0.01; // Invert for intuitive movement
+        const minY = item.dimensions.height / 2;
+        const maxY = 3 - item.dimensions.height / 2;
+        newPosition.y = Math.max(minY, Math.min(maxY, item.position.y + deltaY));
+      } else {
+        // Horizontal movement along the wall
+        const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        const intersectionPoint = new THREE.Vector3();
+        raycaster.ray.intersectPlane(groundPlane, intersectionPoint);
 
-      const boundedX = Math.max(-halfWidth, Math.min(halfWidth, intersectionPoint.x));
-      const boundedZ = Math.max(-halfDepth, Math.min(halfDepth, intersectionPoint.z));
+        if (intersectionPoint) {
+          const halfWidth = roomBounds.width / 2 - item.dimensions.width / 2;
+          const halfDepth = roomBounds.depth / 2 - item.dimensions.depth / 2;
 
-      onPositionChange(item.id, {
-        x: boundedX,
-        y: item.position.y,
-        z: boundedZ
-      });
+          switch (item.wallSide) {
+            case 'north':
+              newPosition.z = roomBounds.depth / 2 - 0.05;
+              newPosition.x = Math.max(-halfWidth + item.dimensions.width/2, Math.min(halfWidth - item.dimensions.width/2, intersectionPoint.x));
+              if (Math.abs(intersectionPoint.x) > halfWidth) collisionWall = 'east/west';
+              break;
+            case 'south':
+              newPosition.z = -roomBounds.depth / 2 + 0.05;
+              newPosition.x = Math.max(-halfWidth + item.dimensions.width/2, Math.min(halfWidth - item.dimensions.width/2, intersectionPoint.x));
+              if (Math.abs(intersectionPoint.x) > halfWidth) collisionWall = 'east/west';
+              break;
+            case 'east':
+              newPosition.x = roomBounds.width / 2 - 0.05;
+              newPosition.z = Math.max(-halfDepth + item.dimensions.depth/2, Math.min(halfDepth - item.dimensions.depth/2, intersectionPoint.z));
+              if (Math.abs(intersectionPoint.z) > halfDepth) collisionWall = 'north/south';
+              break;
+            case 'west':
+              newPosition.x = -roomBounds.width / 2 + 0.05;
+              newPosition.z = Math.max(-halfDepth + item.dimensions.depth/2, Math.min(halfDepth - item.dimensions.depth/2, intersectionPoint.z));
+              if (Math.abs(intersectionPoint.z) > halfDepth) collisionWall = 'north/south';
+              break;
+          }
+        }
+      }
+
+      setWallCollision(collisionWall);
+      onPositionChange(item.id, newPosition);
+    } else {
+      // Regular items - ensure they sit on the floor
+      const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+      const intersectionPoint = new THREE.Vector3();
+      raycaster.ray.intersectPlane(groundPlane, intersectionPoint);
+
+      if (intersectionPoint) {
+        const halfWidth = roomBounds.width / 2 - item.dimensions.width / 2;
+        const halfDepth = roomBounds.depth / 2 - item.dimensions.depth / 2;
+        
+        let boundedX = intersectionPoint.x;
+        let boundedZ = intersectionPoint.z;
+        let collision = null;
+
+        // Check wall collisions
+        if (Math.abs(intersectionPoint.x) > halfWidth) {
+          boundedX = Math.sign(intersectionPoint.x) * halfWidth;
+          collision = Math.sign(intersectionPoint.x) > 0 ? 'east' : 'west';
+        }
+        if (Math.abs(intersectionPoint.z) > halfDepth) {
+          boundedZ = Math.sign(intersectionPoint.z) * halfDepth;
+          collision = collision || (Math.sign(intersectionPoint.z) > 0 ? 'north' : 'south');
+        }
+
+        setWallCollision(collision);
+        
+        // Items should always sit on the floor
+        onPositionChange(item.id, {
+          x: boundedX,
+          y: item.dimensions.height / 2,
+          z: boundedZ
+        });
+      }
     }
-  }, [isDragging, camera, gl, raycaster, item, onPositionChange, roomBounds]);
+  }, [isDragging, camera, gl, raycaster, item, onPositionChange, roomBounds, isMovingVertically, dragStartY]);
 
   const handlePointerUp = useCallback(() => {
     setIsDragging(false);
+    setIsMovingVertically(false);
+    setDragStartY(null);
+    setWallCollision(null);
   }, []);
+
+  const handleRotate = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newRotation = {
+      ...item.rotation,
+      y: item.rotation.y + Math.PI / 2
+    };
+    onRotationChange(item.id, newRotation);
+  }, [item, onRotationChange]);
+
+  const handleWallSideChange = useCallback((newWallSide: 'north' | 'south' | 'east' | 'west', e: React.MouseEvent) => {
+    e.stopPropagation();
+    onWallSideChange(item.id, newWallSide);
+  }, [item.id, onWallSideChange]);
 
   useEffect(() => {
     if (isDragging) {
@@ -244,7 +329,6 @@ const RoomItemComponent: React.FC<{
       case 'chair':
         return (
           <group>
-            {/* Seat */}
             <FurnitureModel
               url="/table.glb"
               scale={1}
@@ -304,79 +388,87 @@ const RoomItemComponent: React.FC<{
       position={[item.position.x, item.position.y, item.position.z]}
       rotation={[item.rotation.x, item.rotation.y, item.rotation.z]}
       onPointerDown={handlePointerDown}
+      onContextMenu={(e) => e.preventDefault()} // Prevent context menu
     >
       {renderFurniture()}
-      {isSelected && (
-        <Box args={[item.dimensions.width + 0.1, item.dimensions.height + 0.1, item.dimensions.depth + 0.1]}>
-          <meshBasicMaterial color="#FFD700" wireframe transparent opacity={0.3} />
-        </Box>
+      
+      {/* Rotation button when selected */}
+      {isSelected && !item.isWallMounted && (
+        <group position={[0, item.dimensions.height / 2 + 0.2, 0]}>
+          <Box args={[0.5, 0.1, 0.1]} position={[0, 0.1, 0]}>
+            <meshBasicMaterial color="#3B82F6" />
+          </Box>
+          <Box 
+            args={[0.2, 0.2, 0.2]} 
+            position={[0, 0.2, 0]}
+            onClick={handleRotate}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <meshBasicMaterial color="#3B82F6" />
+          </Box>
+        </group>
+      )}
+
+      {/* Wall-mounted item controls */}
+      {isSelected && item.isWallMounted && (
+        <group position={[0, item.dimensions.height / 2 + 0.2, 0]}>
+          {/* Wall change buttons */}
+          <group position={[0, 0.4, 0]}>
+            {(['north', 'south', 'east', 'west'] as const).map((wallSide) => (
+              <group key={wallSide} position={getWallButtonPosition(wallSide, item.dimensions.width)}>
+                <Box 
+                  args={[0.15, 0.15, 0.15]} 
+                  onClick={(e) => handleWallSideChange(wallSide, e)}
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  <meshBasicMaterial color={item.wallSide === wallSide ? '#10B981' : '#6B7280'} />
+                </Box>
+              </group>
+            ))}
+          </group>
+          
+          {/* Rotation button */}
+          <group position={[0, 0.1, 0]}>
+            <Box args={[0.3, 0.1, 0.1]} position={[0, 0.05, 0]}>
+              <meshBasicMaterial color="#3B82F6" />
+            </Box>
+            <Box 
+              args={[0.15, 0.15, 0.15]} 
+              position={[0, 0.15, 0]}
+              onClick={handleRotate}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <meshBasicMaterial color="#3B82F6" />
+            </Box>
+          </group>
+        </group>
       )}
     </group>
   );
 };
 
-// Enhanced Room Floor Component
+// Helper function to position wall change buttons
+const getWallButtonPosition = (wallSide: 'north' | 'south' | 'east' | 'west', itemWidth: number) => {
+  const offset = itemWidth / 2 + 0.3;
+  switch (wallSide) {
+    case 'north': return [0, 0, offset];
+    case 'south': return [0, 0, -offset];
+    case 'east': return [offset, 0, 0];
+    case 'west': return [-offset, 0, 0];
+  }
+};
+
+// Enhanced Room Floor Component with wall collision indication
 const RoomFloor: React.FC<{
-  floorPlan: CustomFloorPlan;
   roomSettings: RoomSettings;
   roomBounds: { width: number; depth: number };
-}> = ({ floorPlan, roomSettings, roomBounds }) => {
+  wallCollisions: string[];
+}> = ({ roomSettings, roomBounds, wallCollisions }) => {
 
-  // Generate procedural textures
-  const createTexture = (pattern: string, color: string) => {
-    const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = 256;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
-
-    ctx.fillStyle = color;
-    ctx.fillRect(0, 0, 256, 256);
-
-    switch (pattern) {
-      case 'brick':
-        ctx.fillStyle = '#8B4513';
-        for (let y = 0; y < 256; y += 32) {
-          for (let x = 0; x < 256; x += 64) {
-            ctx.fillRect(x + (y % 64 === 0 ? 0 : 32), y, 60, 28);
-          }
-        }
-        break;
-      case 'wood':
-        ctx.fillStyle = '#654321';
-        for (let i = 0; i < 256; i += 8) {
-          ctx.fillRect(0, i, 256, 2);
-        }
-        break;
-      case 'tile':
-        ctx.strokeStyle = '#999';
-        ctx.lineWidth = 2;
-        for (let i = 0; i <= 256; i += 32) {
-          ctx.beginPath();
-          ctx.moveTo(i, 0);
-          ctx.lineTo(i, 256);
-          ctx.moveTo(0, i);
-          ctx.lineTo(256, i);
-          ctx.stroke();
-        }
-        break;
-      case 'concrete':
-        // Add some noise
-        for (let i = 0; i < 100; i++) {
-          ctx.fillStyle = `rgba(${Math.random() * 50}, ${Math.random() * 50}, ${Math.random() * 50}, 0.1)`;
-          ctx.fillRect(Math.random() * 256, Math.random() * 256, 4, 4);
-        }
-        break;
-    }
-
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(roomBounds.width / 2, roomBounds.depth / 2);
-    return texture;
+  // Determine wall color based on collision
+  const getWallColor = (wall: string, defaultColor: string) => {
+    return wallCollisions.includes(wall) ? '#EF4444' : defaultColor;
   };
-
-  const floorTexture = createTexture(roomSettings.floorTexture, roomSettings.floorColor);
-  const wallTexture = createTexture(roomSettings.wallTexture, roomSettings.wallColors.north);
-  const ceilingTexture = createTexture(roomSettings.ceilingTexture, roomSettings.ceilingColor);
 
   return (
     <group>
@@ -389,7 +481,6 @@ const RoomFloor: React.FC<{
       >
         <meshStandardMaterial
           color={roomSettings.floorColor}
-          map={floorTexture}
         />
       </Plane>
 
@@ -402,7 +493,6 @@ const RoomFloor: React.FC<{
         >
           <meshStandardMaterial
             color={roomSettings.ceilingColor}
-            map={ceilingTexture}
           />
         </Plane>
       )}
@@ -411,245 +501,32 @@ const RoomFloor: React.FC<{
       {roomSettings.showWalls.north && (
         <Box args={[roomBounds.width, 3, 0.1]} position={[0, 1.5, roomBounds.depth / 2]}>
           <meshStandardMaterial
-            color={roomSettings.wallColors.north}
-            map={wallTexture}
+            color={getWallColor('north', roomSettings.wallColors.north)}
           />
         </Box>
       )}
       {roomSettings.showWalls.south && (
         <Box args={[roomBounds.width, 3, 0.1]} position={[0, 1.5, -roomBounds.depth / 2]}>
           <meshStandardMaterial
-            color={roomSettings.wallColors.south}
-            map={wallTexture}
+            color={getWallColor('south', roomSettings.wallColors.south)}
           />
         </Box>
       )}
       {roomSettings.showWalls.east && (
         <Box args={[0.1, 3, roomBounds.depth]} position={[roomBounds.width / 2, 1.5, 0]}>
           <meshStandardMaterial
-            color={roomSettings.wallColors.east}
-            map={wallTexture}
+            color={getWallColor('east', roomSettings.wallColors.east)}
           />
         </Box>
       )}
       {roomSettings.showWalls.west && (
         <Box args={[0.1, 3, roomBounds.depth]} position={[-roomBounds.width / 2, 1.5, 0]}>
           <meshStandardMaterial
-            color={roomSettings.wallColors.west}
-            map={wallTexture}
+            color={getWallColor('west', roomSettings.wallColors.west)}
           />
         </Box>
       )}
     </group>
-  );
-};
-
-// Enhanced Floor Plan Canvas Component
-const FloorPlanCanvas: React.FC<{
-  floorPlan: CustomFloorPlan;
-  onFloorPlanChange: (plan: CustomFloorPlan) => void;
-  roomBounds: { width: number; depth: number };
-}> = ({ floorPlan, onFloorPlanChange, roomBounds }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  // const [isDrawing, setIsDrawing] = useState(false);
-  const [selectedPoint, setSelectedPoint] = useState<string | null>(null);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-
-  const scale = 20; // pixels per unit
-  const centerX = 200;
-  const centerY = 200;
-
-  // Convert world coordinates to canvas coordinates
-  const worldToCanvas = (worldX: number, worldZ: number) => ({
-    x: centerX + worldX * scale,
-    y: centerY + worldZ * scale
-  });
-
-  // Convert canvas coordinates to world coordinates
-  const canvasToWorld = (canvasX: number, canvasY: number) => ({
-    x: (canvasX - centerX) / scale,
-    z: (canvasY - centerY) / scale
-  });
-
-  const getMousePos = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return { x: 0, y: 0 };
-    return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    };
-  };
-
-  const calculateDistance = (p1: FloorPlanPoint, p2: FloorPlanPoint): string => {
-    const distance = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
-    const feet = Math.floor(distance);
-    const inches = Math.round((distance - feet) * 12);
-    return `${feet}' ${inches}"`;
-  };
-
-  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const pos = getMousePos(e);
-    const worldPos = canvasToWorld(pos.x, pos.y);
-
-    // Check if clicking on existing point
-    const clickedPoint = floorPlan.points.find(point => {
-      const canvasPos = worldToCanvas(point.x, point.y);
-      const distance = Math.sqrt(Math.pow(pos.x - canvasPos.x, 2) + Math.pow(pos.y - canvasPos.y, 2));
-      return distance < 10;
-    });
-
-    if (clickedPoint) {
-      setSelectedPoint(clickedPoint.id);
-      const canvasPos = worldToCanvas(clickedPoint.x, clickedPoint.y);
-      setDragOffset({
-        x: pos.x - canvasPos.x,
-        y: pos.y - canvasPos.y
-      });
-    } else {
-      // Add new point
-      const newPoint: FloorPlanPoint = {
-        id: Date.now().toString(),
-        x: worldPos.x,
-        y: worldPos.z
-      };
-
-      const updatedPlan = {
-        ...floorPlan,
-        points: [...floorPlan.points, newPoint],
-        isCustom: true
-      };
-
-      onFloorPlanChange(updatedPlan);
-    }
-  };
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!selectedPoint) return;
-
-    const pos = getMousePos(e);
-    const worldPos = canvasToWorld(pos.x - dragOffset.x, pos.y - dragOffset.y);
-
-    const updatedPoints = floorPlan.points.map(point =>
-      point.id === selectedPoint ? { ...point, x: worldPos.x, y: worldPos.z } : point
-    );
-
-    onFloorPlanChange({
-      ...floorPlan,
-      points: updatedPoints
-    });
-  };
-
-  const handleMouseUp = () => {
-    setSelectedPoint(null);
-  };
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Draw grid
-    ctx.strokeStyle = '#E0E0E0';
-    ctx.lineWidth = 1;
-    for (let i = 0; i < canvas.width; i += scale) {
-      ctx.beginPath();
-      ctx.moveTo(i, 0);
-      ctx.lineTo(i, canvas.height);
-      ctx.stroke();
-    }
-    for (let i = 0; i < canvas.height; i += scale) {
-      ctx.beginPath();
-      ctx.moveTo(0, i);
-      ctx.lineTo(canvas.width, i);
-      ctx.stroke();
-    }
-
-    // Draw default room outline if not custom
-    if (!floorPlan.isCustom) {
-      ctx.strokeStyle = '#2563EB';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(
-        centerX - (roomBounds.width * scale) / 2,
-        centerY - (roomBounds.depth * scale) / 2,
-        roomBounds.width * scale,
-        roomBounds.depth * scale
-      );
-
-      // Add default dimensions
-      ctx.fillStyle = '#1F2937';
-      ctx.font = '12px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText(
-        `${roomBounds.width}'`,
-        centerX,
-        centerY - (roomBounds.depth * scale) / 2 - 10
-      );
-      ctx.save();
-      ctx.translate(centerX - (roomBounds.width * scale) / 2 - 20, centerY);
-      ctx.rotate(-Math.PI / 2);
-      ctx.fillText(`${roomBounds.depth}'`, 0, 0);
-      ctx.restore();
-    }
-
-    // Draw custom floor plan points
-    floorPlan.points.forEach(point => {
-      const canvasPos = worldToCanvas(point.x, point.y);
-      ctx.fillStyle = point.id === selectedPoint ? '#EF4444' : '#2563EB';
-      ctx.beginPath();
-      ctx.arc(canvasPos.x, canvasPos.y, 6, 0, 2 * Math.PI);
-      ctx.fill();
-    });
-
-    // Draw connections
-    floorPlan.connections.forEach(connection => {
-      const startPoint = floorPlan.points.find(p => p.id === connection.start);
-      const endPoint = floorPlan.points.find(p => p.id === connection.end);
-
-      if (startPoint && endPoint) {
-        const startCanvas = worldToCanvas(startPoint.x, startPoint.y);
-        const endCanvas = worldToCanvas(endPoint.x, endPoint.y);
-
-        ctx.strokeStyle = '#2563EB';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(startCanvas.x, startCanvas.y);
-        ctx.lineTo(endCanvas.x, endCanvas.y);
-        ctx.stroke();
-
-        // Draw length
-        const midX = (startCanvas.x + endCanvas.x) / 2;
-        const midY = (startCanvas.y + endCanvas.y) / 2;
-        ctx.fillStyle = '#1F2937';
-        ctx.font = '12px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(calculateDistance(startPoint, endPoint), midX, midY - 5);
-      }
-    });
-  }, [floorPlan, selectedPoint, roomBounds]);
-
-  return (
-    <div className="space-y-4">
-      <canvas
-        ref={canvasRef}
-        width={400}
-        height={400}
-        className="border border-gray-300 cursor-pointer bg-white"
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-      />
-      <div className="text-sm text-gray-600">
-        <p>• Default room shown with blue outline</p>
-        <p>• Click to add points for custom floor plan</p>
-        <p>• Drag points to adjust shape</p>
-        <p>• Lines show automatic measurements</p>
-      </div>
-    </div>
   );
 };
 
@@ -729,42 +606,6 @@ const RoomSettingsPanel: React.FC<{
       </div>
 
       <div>
-        <h4 className="font-medium mb-3">Textures</h4>
-        <div className="space-y-3">
-          <div>
-            <label className="block text-sm mb-1">Floor Texture</label>
-            <select
-              value={roomSettings.floorTexture}
-              onChange={(e) => onSettingsChange({
-                ...roomSettings,
-                floorTexture: e.target.value
-              })}
-              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-            >
-              {TEXTURE_OPTIONS.map(option => (
-                <option key={option.id} value={option.pattern}>{option.name}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm mb-1">Wall Texture</label>
-            <select
-              value={roomSettings.wallTexture}
-              onChange={(e) => onSettingsChange({
-                ...roomSettings,
-                wallTexture: e.target.value
-              })}
-              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-            >
-              {TEXTURE_OPTIONS.map(option => (
-                <option key={option.id} value={option.pattern}>{option.name}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div>
         <h4 className="font-medium mb-3">Colors</h4>
         <div className="space-y-2">
           <div>
@@ -821,29 +662,34 @@ const Sidebar: React.FC<{
   activeTab: string;
   onTabChange: (tab: string) => void;
   itemTemplates: ItemTemplate[];
-  onAddItem: (template: ItemTemplate) => void;
-  floorPlan: CustomFloorPlan;
-  onFloorPlanChange: (plan: CustomFloorPlan) => void;
+  onAddItem: (template: ItemTemplate, wallSide?: 'north' | 'south' | 'east' | 'west') => void;
   roomSettings: RoomSettings;
   onRoomSettingsChange: (settings: RoomSettings) => void;
   roomBounds: { width: number; depth: number };
+  selectedItemId: string | null;
+  onWallMountChange: (id: string, wallSide: 'north' | 'south' | 'east' | 'west') => void;
+  onRotateItem: (id: string) => void;
 }> = ({
   activeTab,
   onTabChange,
   itemTemplates,
   onAddItem,
-  floorPlan,
-  onFloorPlanChange,
   roomSettings,
   onRoomSettingsChange,
-  roomBounds
+  roomBounds,
+  selectedItemId,
+  onWallMountChange,
+  onRotateItem
 }) => {
+    const [selectedWallForMounting, setSelectedWallForMounting] = useState<'north' | 'south' | 'east' | 'west'>('north');
+    
     const tabs = [
       { id: 'model', label: 'Room Config', icon: Home },
-      { id: 'floor', label: 'Floor Plan', icon: Menu },
       { id: 'items', label: 'Items', icon: Package },
       { id: 'settings', label: 'Appearance', icon: Palette }
     ];
+
+    const selectedItem = selectedItemId ? itemTemplates.find(t => t.id === selectedItemId) : null;
 
     return (
       <div className="w-80 h-full bg-gray-100 border-r border-gray-300 flex flex-col">
@@ -867,8 +713,49 @@ const Sidebar: React.FC<{
           })}
         </div>
 
+        {/* Selected Item Controls */}
+        {selectedItemId && selectedItem && (
+          <div className="p-4 border-b border-gray-300 bg-white">
+            <h4 className="font-medium mb-2">{selectedItem.name} Controls</h4>
+            <div className="space-y-2">
+              <button
+                onClick={() => onRotateItem(selectedItemId)}
+                className="w-full px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors flex items-center justify-center gap-2 text-sm"
+              >
+                <RotateCw size={14} /> Rotate 90°
+              </button>
+              
+              {selectedItem.isWallMounted && (
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium">Mount on Wall:</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['north', 'south', 'east', 'west'] as const).map((wall) => (
+                      <button
+                        key={wall}
+                        onClick={() => {
+                          setSelectedWallForMounting(wall);
+                          onWallMountChange(selectedItemId, wall);
+                        }}
+                        className={`px-2 py-1 text-sm rounded ${selectedWallForMounting === wall ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+                      >
+                        {wall.charAt(0).toUpperCase() + wall.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="mt-2 p-2 bg-blue-50 rounded text-xs text-blue-700">
+                    <p>💡 <strong>Pro Tip:</strong></p>
+                    <p className="mt-1">• Drag normally to move left/right</p>
+                    <p>• Hold <strong>Shift</strong> while dragging to move up/down</p>
+                    <p>• Or use the colored buttons on the item</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Tab Content */}
-        <div className="flex-1 p-4 overflow-y-auto bg-black">
+        <div className="flex-1 p-4 overflow-y-auto">
           {activeTab === 'model' && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Room Configuration</h3>
@@ -909,42 +796,10 @@ const Sidebar: React.FC<{
                 <h4 className="font-medium text-blue-900 mb-2">Quick Tips:</h4>
                 <ul className="text-sm text-blue-800 space-y-1">
                   <li>• Default room is {roomBounds.width}' × {roomBounds.depth}'</li>
-                  <li>• Use Floor Plan tab for custom shapes</li>
                   <li>• Drag items to arrange furniture</li>
+                  <li>• Click rotation button above items to rotate</li>
+                  <li>• Wall-mounted items: Drag normally for left/right, Shift+drag for up/down</li>
                 </ul>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'floor' && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Floor Plan Designer</h3>
-              <FloorPlanCanvas
-                floorPlan={floorPlan}
-                onFloorPlanChange={onFloorPlanChange}
-                roomBounds={roomBounds}
-              />
-              <div className="flex gap-2">
-                <button
-                  onClick={() => onFloorPlanChange({
-                    points: [],
-                    connections: [],
-                    isCustom: false
-                  })}
-                  className="flex-1 px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors text-sm"
-                >
-                  Reset to Default
-                </button>
-                <button
-                  onClick={() => onFloorPlanChange({
-                    ...floorPlan,
-                    points: [],
-                    connections: []
-                  })}
-                  className="flex-1 px-3 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors text-sm"
-                >
-                  Clear All
-                </button>
               </div>
             </div>
           )}
@@ -985,6 +840,11 @@ const Sidebar: React.FC<{
                           {template.dimensions.width}' × {template.dimensions.depth}' × {template.dimensions.height}'
                         </p>
                         <p className="text-xs text-gray-400 capitalize">{template.type}</p>
+                        {template.isWallMounted && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <span className="text-xs text-gray-500">🖼️ Wall Mounted</span>
+                          </div>
+                        )}
                       </div>
                       <div className="text-gray-400 group-hover:text-blue-500">
                         <Package size={16} />
@@ -997,6 +857,7 @@ const Sidebar: React.FC<{
                 <h4 className="font-medium text-amber-800 mb-1">Pro Tip:</h4>
                 <p className="text-sm text-amber-700">
                   Click any furniture item to add it to your room. You can drag and position items after adding them.
+                  Use the rotation button above items to rotate them 90°.
                 </p>
               </div>
             </div>
@@ -1044,11 +905,6 @@ const RoomDesigner: React.FC = () => {
   ]);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [itemTemplates] = useState<ItemTemplate[]>(DEFAULT_ITEMS);
-  const [floorPlan, setFloorPlan] = useState<CustomFloorPlan>({
-    points: [],
-    connections: [],
-    isCustom: false
-  });
   const [roomSettings, setRoomSettings] = useState<RoomSettings>({
     showWalls: { north: true, south: true, east: true, west: true },
     showCeiling: true,
@@ -1059,24 +915,62 @@ const RoomDesigner: React.FC = () => {
     floorTexture: 'none',
     ceilingTexture: 'none'
   });
+  const [wallCollisions, setWallCollisions] = useState<string[]>([]);
+  const [isDraggingItem, setIsDraggingItem] = useState(false);
+
+  // Reset dragging state when item is deselected or deleted
+  useEffect(() => {
+    if (!selectedItemId) {
+      setIsDraggingItem(false);
+      setWallCollisions([]);
+    }
+  }, [selectedItemId]);
 
   // Add new item to the room
-  const handleAddItem = useCallback((template: ItemTemplate) => {
+  const handleAddItem = useCallback((template: ItemTemplate, wallSide?: 'north' | 'south' | 'east' | 'west') => {
+    let position;
+    let wallSideToUse = wallSide;
+    
+    if (template.isWallMounted) {
+      wallSideToUse = wallSideToUse || 'north';
+      switch (wallSideToUse) {
+        case 'north':
+          position = { x: 0, y: 1.5, z: roomBounds.depth / 2 - 0.05 };
+          break;
+        case 'south':
+          position = { x: 0, y: 1.5, z: -roomBounds.depth / 2 + 0.05 };
+          break;
+        case 'east':
+          position = { x: roomBounds.width / 2 - 0.05, y: 1.5, z: 0 };
+          break;
+        case 'west':
+          position = { x: -roomBounds.width / 2 + 0.05, y: 1.5, z: 0 };
+          break;
+      }
+    } else {
+      // Place regular items on the floor (half height above floor)
+      position = { x: 0, y: template.dimensions.height / 2, z: 0 };
+    }
+
     const newItem: RoomItem = {
       id: Date.now().toString(),
       name: template.name,
       type: template.type,
-      position: { x: 0, y: template.dimensions.height / 2, z: 0 },
+      position,
       rotation: { x: 0, y: 0, z: 0 },
       dimensions: template.dimensions,
       color: template.color,
-      textureUrl: template.textureUrl
+      textureUrl: template.textureUrl,
+      isWallMounted: template.isWallMounted,
+      wallSide: wallSideToUse
     };
     setRoomItems(prev => [...prev, newItem]);
-  }, []);
+    setSelectedItemId(newItem.id);
+  }, [roomBounds]);
 
   // Update item position with collision detection
   const handleItemPositionChange = useCallback((id: string, position: { x: number; y: number; z: number }) => {
+    setIsDraggingItem(true);
     setRoomItems(prev => {
       const item = prev.find(i => i.id === id);
       if (!item) return prev;
@@ -1100,15 +994,101 @@ const RoomDesigner: React.FC = () => {
         item.id === id ? { ...item, position } : item
       );
     });
+
+    // Update wall collisions
+    const newCollisions: string[] = [];
+    const halfWidth = roomBounds.width / 2;
+    const halfDepth = roomBounds.depth / 2;
+    
+    if (Math.abs(position.x) >= halfWidth) {
+      newCollisions.push(position.x > 0 ? 'east' : 'west');
+    }
+    if (Math.abs(position.z) >= halfDepth) {
+      newCollisions.push(position.z > 0 ? 'north' : 'south');
+    }
+    
+    setWallCollisions(newCollisions);
+  }, [roomBounds]);
+
+  const handleItemRotationChange = useCallback((id: string, rotation: { x: number; y: number; z: number }) => {
+    setRoomItems(prev => 
+      prev.map(item => 
+        item.id === id ? { ...item, rotation } : item
+      )
+    );
   }, []);
+
+  const handleRotateItem = useCallback((id: string) => {
+    setRoomItems(prev => 
+      prev.map(item => {
+        if (item.id === id) {
+          return {
+            ...item,
+            rotation: {
+              ...item.rotation,
+              y: item.rotation.y + Math.PI / 2
+            }
+          };
+        }
+        return item;
+      })
+    );
+  }, []);
+
+  const handleWallSideChange = useCallback((id: string, newWallSide: 'north' | 'south' | 'east' | 'west') => {
+    setRoomItems(prev => 
+      prev.map(item => {
+        if (item.id === id) {
+          let newPosition = { ...item.position };
+          const halfWidth = roomBounds.width / 2;
+          const halfDepth = roomBounds.depth / 2;
+          
+          // Calculate new position based on the new wall
+          switch (newWallSide) {
+            case 'north':
+              newPosition.z = halfDepth - 0.05;
+              newPosition.x = Math.max(-halfWidth + item.dimensions.width/2, Math.min(halfWidth - item.dimensions.width/2, item.position.x));
+              break;
+            case 'south':
+              newPosition.z = -halfDepth + 0.05;
+              newPosition.x = Math.max(-halfWidth + item.dimensions.width/2, Math.min(halfWidth - item.dimensions.width/2, item.position.x));
+              break;
+            case 'east':
+              newPosition.x = halfWidth - 0.05;
+              newPosition.z = Math.max(-halfDepth + item.dimensions.depth/2, Math.min(halfDepth - item.dimensions.depth/2, item.position.z));
+              break;
+            case 'west':
+              newPosition.x = -halfWidth + 0.05;
+              newPosition.z = Math.max(-halfDepth + item.dimensions.depth/2, Math.min(halfDepth - item.dimensions.depth/2, item.position.z));
+              break;
+          }
+          
+          return { ...item, wallSide: newWallSide, position: newPosition };
+        }
+        return item;
+      })
+    );
+  }, [roomBounds]);
 
   // Delete selected item
   const handleDeleteItem = useCallback(() => {
     if (selectedItemId) {
       setRoomItems(prev => prev.filter(item => item.id !== selectedItemId));
       setSelectedItemId(null);
+      setIsDraggingItem(false);
+      setWallCollisions([]);
     }
   }, [selectedItemId]);
+
+  // Handle click outside to deselect
+  const handleCanvasClick = useCallback((e: React.MouseEvent) => {
+    // Only deselect if clicking directly on canvas background
+    if (e.target === e.currentTarget) {
+      setSelectedItemId(null);
+      setIsDraggingItem(false);
+      setWallCollisions([]);
+    }
+  }, []);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -1117,12 +1097,20 @@ const RoomDesigner: React.FC = () => {
         if (selectedItemId) {
           handleDeleteItem();
         }
+      } else if (e.key === 'r' || e.key === 'R') {
+        if (selectedItemId) {
+          handleRotateItem(selectedItemId);
+        }
+      } else if (e.key === 'Escape') {
+        setSelectedItemId(null);
+        setIsDraggingItem(false);
+        setWallCollisions([]);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedItemId, handleDeleteItem]);
+  }, [selectedItemId, handleDeleteItem, handleRotateItem]);
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -1132,15 +1120,16 @@ const RoomDesigner: React.FC = () => {
         onTabChange={setActiveTab}
         itemTemplates={itemTemplates}
         onAddItem={handleAddItem}
-        floorPlan={floorPlan}
-        onFloorPlanChange={setFloorPlan}
         roomSettings={roomSettings}
         onRoomSettingsChange={setRoomSettings}
         roomBounds={roomBounds}
+        selectedItemId={selectedItemId}
+        onWallMountChange={handleWallSideChange}
+        onRotateItem={handleRotateItem}
       />
 
       {/* Main Canvas Area */}
-      <div className="flex-1 relative">
+      <div className="flex-1 relative" onClick={handleCanvasClick}>
         <Canvas
           camera={{
             position: [8, 8, 8],
@@ -1176,9 +1165,9 @@ const RoomDesigner: React.FC = () => {
 
           {/* Room and Items */}
           <RoomFloor
-            floorPlan={floorPlan}
             roomSettings={roomSettings}
             roomBounds={roomBounds}
+            wallCollisions={wallCollisions}
           />
 
           {roomItems.map(item => (
@@ -1188,15 +1177,18 @@ const RoomDesigner: React.FC = () => {
               isSelected={selectedItemId === item.id}
               onSelect={setSelectedItemId}
               onPositionChange={handleItemPositionChange}
+              onRotationChange={handleItemRotationChange}
+              onWallSideChange={handleWallSideChange}
               roomBounds={roomBounds}
+              roomSettings={roomSettings}
             />
           ))}
 
-          {/* Camera Controls - Restricted for better dragging */}
+          {/* Camera Controls - Disabled when dragging items */}
           <OrbitControls
-            enablePan={false}
-            enableZoom={true}
-            enableRotate={true}
+            enablePan={!isDraggingItem}
+            enableZoom={!isDraggingItem}
+            enableRotate={!isDraggingItem}
             maxPolarAngle={Math.PI / 2.2}
             minPolarAngle={Math.PI / 6}
             minDistance={6}
@@ -1210,9 +1202,13 @@ const RoomDesigner: React.FC = () => {
         <div className="absolute top-4 right-4 flex flex-col gap-2">
           <div className="flex gap-2">
             <button
-              onClick={() => setSelectedItemId(null)}
+              onClick={() => {
+                setSelectedItemId(null);
+                setIsDraggingItem(false);
+                setWallCollisions([]);
+              }}
               className="px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 transition-colors"
-              title="Deselect All"
+              title="Deselect All (Esc)"
             >
               <RotateCcw size={16} />
             </button>
@@ -1228,12 +1224,19 @@ const RoomDesigner: React.FC = () => {
           </div>
 
           {selectedItemId && (
-            <div className="bg-white p-2 rounded-md shadow-lg text-sm max-w-xs">
-              <div className="font-medium">
+            <div className="bg-white p-3 rounded-md shadow-lg max-w-xs">
+              <div className="font-medium mb-1">
                 {roomItems.find(item => item.id === selectedItemId)?.name}
               </div>
-              <div className="text-gray-500 text-xs mt-1">
-                Click and drag to move • Del to delete
+              <div className="text-gray-600 text-xs space-y-1">
+                <div>• Click and drag to move</div>
+                <div>• Press R or click rotation button to rotate</div>
+                <div>• Del/Backspace to delete • Esc to deselect</div>
+                {wallCollisions.length > 0 && (
+                  <div className="text-red-500 font-medium mt-1">
+                    ⚠ Collision with {wallCollisions.join(', ')} wall
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1245,14 +1248,25 @@ const RoomDesigner: React.FC = () => {
           <ul className="text-sm text-gray-600 space-y-1">
             <li>• <strong>Click</strong> items to select</li>
             <li>• <strong>Drag</strong> to move furniture</li>
+            <li>• <strong>Press R</strong> or use rotation button to rotate items</li>
+            <li>• <strong>Esc</strong> to deselect items</li>
             <li>• <strong>Mouse wheel</strong> to zoom</li>
-            <li>• <strong>Right-click + drag</strong> to rotate view</li>
+            <li>• <strong>Right-click + drag</strong> to rotate view (when not dragging items)</li>
             <li>• <strong>Delete/Backspace</strong> to remove items</li>
-            <li>• Items snap to room boundaries</li>
+            <li>• Items cannot pass through walls (walls turn red on collision)</li>
+            <li>• <strong>Wall-mounted items:</strong></li>
+            <li className="ml-2">  ◦ Drag normally for left/right movement</li>
+            <li className="ml-2">  ◦ <strong>Shift+drag</strong> for up/down movement</li>
+            <li className="ml-2">  ◦ Use colored buttons around item to change walls</li>
           </ul>
           <div className="mt-3 pt-2 border-t border-gray-200">
             <div className="text-xs text-gray-500">
               Room: {roomBounds.width}' × {roomBounds.depth}' • Items: {roomItems.length}
+              {isDraggingItem && (
+                <span className="text-blue-500 ml-2">
+                  🟢 Dragging mode - Room controls disabled
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -1263,9 +1277,35 @@ const RoomDesigner: React.FC = () => {
           <div className="text-xs text-gray-600 mt-1">
             <div>Size: {roomBounds.width}' × {roomBounds.depth}'</div>
             <div>Items: {roomItems.length}</div>
-            <div>Mode: {floorPlan.isCustom ? 'Custom Floor Plan' : 'Standard Room'}</div>
+            <div>
+              {isDraggingItem ? (
+                <span className="text-blue-500">🟢 Dragging mode</span>
+              ) : selectedItemId ? (
+                <span className="text-green-500">🟡 Item selected</span>
+              ) : (
+                <span className="text-gray-500">Ready</span>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Wall Mounting Helper */}
+        {roomItems.find(item => item.id === selectedItemId)?.isWallMounted && (
+          <div className="absolute top-20 left-4 bg-blue-50 p-3 rounded-lg shadow-lg max-w-xs border border-blue-200">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="text-blue-500">🖼️</div>
+              <div className="font-medium text-blue-800">Wall Mounted Item Controls</div>
+            </div>
+            <div className="text-sm text-blue-700 space-y-1">
+              <div><strong>Movement:</strong></div>
+              <div>• Normal drag: Move left/right along wall</div>
+              <div>• <strong>Shift + drag:</strong> Move up/down</div>
+              <div className="mt-1"><strong>Change wall:</strong></div>
+              <div>• Click colored buttons around the item</div>
+              <div>• Green = current wall, Gray = other walls</div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
