@@ -1,6 +1,6 @@
 "use client";
 import ContentBlock from "@/app/components/shared/contentBlock";
-import { teamMembers } from "@/app/constants/team";
+// import { teamMembers } from "@/app/constants/team";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import type {teamMemberType} from "@/app/types/teamType"
@@ -23,10 +23,10 @@ export default function TeamDetailPage({ params }: Props) {
   useEffect(() => {
     const getTeamMember = async () => {
       try {
-        const param = await params;
-        const member = teamMembers.find((item) => item.slug == param.slug);
-        setTeamMember(member || null);
-        console.log("member", member);
+        // const param = await params;
+        // const member = teamMembers.find((item) => item.slug == param.slug);
+        // setTeamMember(member || null);
+        // console.log("member", member);
         // setProductDetail(findProducts || null);
       } catch (error) {
         console.log("error", error);

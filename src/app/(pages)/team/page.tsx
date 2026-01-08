@@ -1,5 +1,5 @@
 import ContentBlock from "@/app/components/shared/contentBlock";
-import { teamMembers } from "@/app/constants/team";
+// import { teamMembers } from "@/app/constants/team";
 import Image from "next/image";
 import Link from "next/link";
 export default function Home() {
@@ -26,7 +26,7 @@ export default function Home() {
         <p className="text-2xl md:text-4xl font-bold mb-10 text-black">
           Experts Ready to Serve
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
+        {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
           {teamMembers
             ?.sort((a, b) => a.order - b.order)
             .map((member) => (
@@ -53,7 +53,7 @@ export default function Home() {
                 </div>
               </Link>
             ))}
-        </div>
+        </div> */}
       </div>
       <ContentBlock
         imgSrc="/career.svg"
