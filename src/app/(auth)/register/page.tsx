@@ -9,18 +9,20 @@ export default function RegisterPage() {
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    role: 'User' // Default to User
   });
   const [errors, setErrors] = useState({
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    role: ''
   });
   const [isLoading, setIsLoading] = useState(false);
 
   const validateForm = () => {
-    const newErrors = { name: '', email: '', password: '', confirmPassword: '' };
+    const newErrors = { name: '', email: '', password: '', confirmPassword: '', role: '' };
     let isValid = true;
 
     // Name validation
@@ -56,6 +58,12 @@ export default function RegisterPage() {
       isValid = false;
     }
 
+    // Role validation
+    if (!formData.role) {
+      newErrors.role = 'Please select a role';
+      isValid = false;
+    }
+
     setErrors(newErrors);
     return isValid;
   };
@@ -68,12 +76,46 @@ export default function RegisterPage() {
     setIsLoading(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      console.log('Register attempt:', formData);
-      // Handle successful registration here
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Registration successful
+        alert('Registration successful! Please login to continue.');
+        // Reset form
+        setFormData({
+          name: '',
+          email: '',
+          password: '',
+          confirmPassword: '',
+          role: 'User'
+        });
+        // Optionally redirect to login page
+        window.location.href = '/login';
+      } else {
+        // Handle validation errors
+        if (data.errors) {
+          const newErrors = { name: '', email: '', password: '', confirmPassword: '', role: '' };
+          data.errors.forEach((error: any) => {
+            if (error.field in newErrors) {
+              newErrors[error.field as keyof typeof newErrors] = error.message;
+            }
+          });
+          setErrors(newErrors);
+        } else {
+          alert(data.message || 'Registration failed');
+        }
+      }
     } catch (error) {
       console.error('Registration failed:', error);
+      alert('Network error. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -98,9 +140,6 @@ export default function RegisterPage() {
             </svg>
           </div>
           <h2 className="text-3xl font-bold text-gray-900">Create Account</h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Join us today and get started
-          </p>
         </div>
 
         {/* Form */}
@@ -170,25 +209,6 @@ export default function RegisterPage() {
               )}
             </div>
 
-            <div className="flex items-center">
-              <input
-                id="terms"
-                name="terms"
-                type="checkbox"
-                className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-                required
-              />
-              <label htmlFor="terms" className="ml-2 block text-sm text-gray-900">
-                I agree to the{' '}
-                <Link href="/terms" className="text-primary hover:text-primary/80">
-                  Terms of Service
-                </Link>{' '}
-                and{' '}
-                <Link href="/privacy" className="text-primary hover:text-primary/80">
-                  Privacy Policy
-                </Link>
-              </label>
-            </div>
 
             <div>
               <CustomButton 

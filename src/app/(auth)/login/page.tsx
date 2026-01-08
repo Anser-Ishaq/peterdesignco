@@ -1,10 +1,15 @@
 "use client";
 import CustomButton from "@/app/components/ui/customButton/customButton";
 import CustomInput from "@/app/components/ui/customInput/customInput";
+import { useAuth } from "@/app/hooks/useAuth";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function Home() {
+  const { login, isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -13,8 +18,40 @@ export default function Home() {
     email: "",
     password: "",
   });
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Handle redirect after authentication
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      const redirectTo = searchParams.get('redirect') || '/dashboard';
+      router.replace(redirectTo);
+    }
+  }, [isAuthenticated, isLoading, router, searchParams]);
+
+  // Show loading while checking auth or if authenticated
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If authenticated, show redirecting message
+  if (isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Redirecting to dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   const validateForm = () => {
     const newErrors = { email: "", password: "" };
@@ -47,17 +84,52 @@ export default function Home() {
 
     if (!validateForm()) return;
 
-    setIsLoading(true);
+    setIsSubmitting(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      console.log("Login attempt:", formData);
-      // Handle successful login here
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Set HTTP-only cookie for server-side auth
+        document.cookie = `auth-token=${data.token}; path=/; max-age=${7 * 24 * 60 * 60}; samesite=strict`;
+        
+        // Login successful - update auth state
+        login(data.user, data.token);
+        
+        // Reset form
+        setFormData({
+          email: '',
+          password: ''
+        });
+        
+        // Redirect will be handled by useEffect
+      } else {
+        // Handle validation errors
+        if (data.errors) {
+          const newErrors = { email: '', password: '' };
+          data.errors.forEach((error: any) => {
+            if (error.field in newErrors) {
+              newErrors[error.field as keyof typeof newErrors] = error.message;
+            }
+          });
+          setErrors(newErrors);
+        } else {
+          alert(data.message || 'Login failed');
+        }
+      }
     } catch (error) {
-      console.error("Login failed:", error);
+      console.error('Login failed:', error);
+      alert('Network error. Please try again.');
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -182,11 +254,11 @@ export default function Home() {
 
               <div>
                 <CustomButton
-                  text={isLoading ? "Signing in..." : "Sign In"}
+                  text={isSubmitting ? "Signing in..." : "Sign In"}
                   layout="w-full"
                   height="h-12"
                   width="w-full"
-                  //   disabled={isLoading}
+                  //   disabled={isSubmitting}
                 />
               </div>
             </form>

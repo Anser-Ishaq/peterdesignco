@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 import CustomInput from "@/app/components/ui/customInput/customInput";
 import CustomTextarea from "@/app/components/ui/customTextarea/customTextarea";
 import { useTeam } from '@/app/hooks/useTeam';
-import { TeamMemberFormData, TeamRole } from '@/app/types/team';
+import { TeamMember, TeamMemberFormData, TeamRole } from '@/app/types/team';
 import { TEAM_ROLES } from '@/app/constants/team';
 import { generateSlug, convertFormDataToTeamMember } from '@/app/utils/teamUtils';
 
@@ -22,29 +22,23 @@ function isValidUrl(url: string, domain?: string): boolean {
   }
 }
 
-export default function AddTeamPage() {
+export default function EditTeamPage() {
   const router = useRouter();
+  const params = useParams();
+  const teamId = params.id as string;
+
   const [formData, setFormData] = useState<TeamMemberFormData>({
-    // Basic info
     name: '',
     slug: '',
     role: '' as TeamRole,
     position: '',
-    
-    // Image
     imageUrl: '',
     imagePublicId: '',
     imageAlt: '',
-    
-    // Bio
     bioText: '',
-    
-    // Social links
     linkedinUrl: '',
     instagramUrl: '',
     facebookUrl: '',
-    
-    // Order and status
     order: 1,
     status: 'active'
   });
@@ -54,8 +48,10 @@ export default function AddTeamPage() {
   const [imagePreview, setImagePreview] = useState<string>('');
   const [errors, setErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [teamMember, setTeamMember] = useState<TeamMember | null>(null);
 
-  const { loading, uploading, uploadImage, createTeamMember } = useTeam({
+  const { loading, uploading, fetchTeamMember, updateTeamMember, uploadImage } = useTeam({
     onSuccess: (message) => {
       alert(`Success: ${message}`);
       router.push('/dashboard/team');
@@ -65,10 +61,49 @@ export default function AddTeamPage() {
     },
   });
 
+  useEffect(() => {
+    if (teamId) {
+      loadTeamMember();
+    }
+  }, [teamId]);
+
+  const loadTeamMember = async () => {
+    try {
+      setIsLoading(true);
+      const member = await fetchTeamMember(teamId);
+      setTeamMember(member);
+      
+      // Populate form with existing data
+      setFormData({
+        name: member.name,
+        slug: member.slug,
+        role: member.role,
+        position: member.position,
+        imageUrl: member.image.url,
+        imagePublicId: member.image.publicId,
+        imageAlt: member.image.alt || '',
+        bioText: member.bio.join('\n'),
+        linkedinUrl: member.socialLinks.linkedin || '',
+        instagramUrl: member.socialLinks.instagram || '',
+        facebookUrl: member.socialLinks.facebook || '',
+        order: member.order,
+        status: member.status,
+      });
+
+      setBioPoints(member.bio.length > 0 ? member.bio : ['']);
+      setImagePreview(member.image.url);
+    } catch (error) {
+      console.error('Failed to load team member:', error);
+      alert('Failed to load team member');
+      router.push('/dashboard/team');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
-    // Auto-generate slug from name
     if (name === 'name') {
       const slug = generateSlug(value);
       setFormData({
@@ -163,7 +198,7 @@ export default function AddTeamPage() {
     setIsSubmitting(true);
 
     try {
-      // Validate form (excluding image fields since we'll upload first)
+      // Validate form
       const validationErrors: string[] = [];
       
       if (!formData.name.trim()) {
@@ -184,7 +219,7 @@ export default function AddTeamPage() {
         validationErrors.push('Position/Title is required');
       }
       
-      if (!selectedFile) {
+      if (!formData.imageUrl && !selectedFile) {
         validationErrors.push('Profile image is required');
       }
       
@@ -215,8 +250,19 @@ export default function AddTeamPage() {
         return;
       }
 
-      // Upload image first
-      const imageData = await uploadImage(selectedFile!);
+      let imageData = {
+        url: formData.imageUrl,
+        publicId: formData.imagePublicId,
+      };
+
+      // Upload new image if selected
+      if (selectedFile) {
+        const uploadResult = await uploadImage(selectedFile);
+        imageData = {
+          url: uploadResult.url,
+          publicId: uploadResult.publicId,
+        };
+      }
 
       // Prepare team member data
       const teamMemberData = convertFormDataToTeamMember({
@@ -226,22 +272,46 @@ export default function AddTeamPage() {
         bioText: validBioPoints.join('\n'),
       });
 
-      // Create team member
-      await createTeamMember(teamMemberData);
+      // Update team member
+      await updateTeamMember(teamId, teamMemberData);
 
     } catch (error) {
-      console.error('Failed to create team member:', error);
+      console.error('Failed to update team member:', error);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const isLoading = loading || uploading || isSubmitting;
+  const isLoadingState = loading || uploading || isSubmitting || isLoading;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Loading team member...</div>
+      </div>
+    );
+  }
+
+  if (!teamMember) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Team member not found</h2>
+          <button
+            onClick={() => router.push('/dashboard/team')}
+            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+          >
+            Back to Team
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Add Team Member</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Edit Team Member</h1>
         <button
           type="button"
           onClick={() => router.back()}
@@ -252,7 +322,7 @@ export default function AddTeamPage() {
       </div>
       
       <div className="bg-white rounded-lg shadow p-6">
-        <p className="text-gray-600 mb-6">Add a new team member to your organization.</p>
+        <p className="text-gray-600 mb-6">Update team member information.</p>
         
         {errors.length > 0 && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -354,7 +424,7 @@ export default function AddTeamPage() {
             <h3 className="text-lg font-semibold text-purple-800 mb-4">Profile Image</h3>
             
             <CustomInput
-              label="Profile Photo"
+              label="Profile Photo (Leave empty to keep current image)"
               id="profileImage"
               name="profileImage"
               type="file"
@@ -363,7 +433,6 @@ export default function AddTeamPage() {
               border="border border-gray-300 rounded-lg"
               backgroundColor="bg-white"
               padding="py-3 px-4"
-              required
             />
             
             <p className="text-sm text-gray-600 mt-2">
@@ -372,7 +441,9 @@ export default function AddTeamPage() {
             
             {imagePreview && (
               <div className="mt-4">
-                <p className="text-sm text-gray-600 mb-2">Preview:</p>
+                <p className="text-sm text-gray-600 mb-2">
+                  {selectedFile ? 'New Image Preview:' : 'Current Image:'}
+                </p>
                 <img 
                   src={imagePreview} 
                   alt={formData.imageAlt}
@@ -535,15 +606,15 @@ export default function AddTeamPage() {
           <div className="flex gap-4 pt-6">
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoadingState}
               className="bg-blue-500 text-white px-8 py-3 rounded-lg hover:bg-blue-600 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Creating...' : 'Add Team Member'}
+              {isLoadingState ? 'Updating...' : 'Update Team Member'}
             </button>
             <button
               type="button"
               onClick={() => router.back()}
-              disabled={isLoading}
+              disabled={isLoadingState}
               className="bg-gray-300 text-gray-700 px-8 py-3 rounded-lg hover:bg-gray-400 font-medium disabled:opacity-50"
             >
               Cancel
