@@ -13,6 +13,10 @@ export async function GET(
 ) {
   try {
     await connectDB();
+    
+    // Ensure models are registered
+    User;
+    Team;
 
     const { id } = await params;
 
@@ -76,6 +80,10 @@ export async function PUT(
     }
 
     await connectDB();
+    
+    // Ensure models are registered
+    User;
+    Team;
 
     const { id } = await params;
 

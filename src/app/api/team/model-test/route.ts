@@ -8,6 +8,10 @@ import mongoose from 'mongoose';
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
+    
+    // Ensure models are registered
+    User;
+    Team;
 
     const results = {
       userModelRegistered: false,

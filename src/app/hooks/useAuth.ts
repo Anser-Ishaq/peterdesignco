@@ -4,8 +4,11 @@ interface User {
   id: string;
   name: string;
   email: string;
+  phone?: string;
+  bio?: string;
   role: 'User' | 'Admin';
   isVerified: boolean;
+  createdAt?: string;
 }
 
 interface AuthState {

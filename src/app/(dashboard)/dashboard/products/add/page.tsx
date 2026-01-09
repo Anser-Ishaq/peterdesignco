@@ -4,9 +4,24 @@ import { useState } from "react";
 import CustomInput from "@/app/components/ui/customInput/customInput";
 import CustomTextarea from "@/app/components/ui/customTextarea/customTextarea";
 import CustomSwitch from "@/app/components/ui/customSwitch/customSwitch";
+import Image from "next/image";
+
+interface UploadedImage {
+  url: string;
+  publicId: string;
+  alt: string;
+  width: number;
+  height: number;
+  format: string;
+  bytes: number;
+}
 
 export default function AddProductPage() {
   const [isOnSale, setIsOnSale] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [thumbnailUploading, setThumbnailUploading] = useState(false);
+  const [galleryUploading, setGalleryUploading] = useState(false);
+  
   const [formData, setFormData] = useState({
     // Basic product info
     name: "",
@@ -28,16 +43,10 @@ export default function AddProductPage() {
     // Quality and rating
     quality: "",
     rating: "0",
-
-    // Images
-    thumbnailUrl: "",
-    thumbnailAlt: "",
-    // productImages will be handled separately for multiple files
   });
 
-  const [productImages, setProductImages] = useState<
-    Array<{ url: string; alt: string }>
-  >([]);
+  const [thumbnailImage, setThumbnailImage] = useState<UploadedImage | null>(null);
+  const [galleryImages, setGalleryImages] = useState<UploadedImage[]>([]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -75,45 +84,104 @@ export default function AddProductPage() {
     });
   };
 
-  const handleThumbnailChange = (files: FileList | null) => {
-    if (files && files[0]) {
-      const file = files[0];
-      // In a real app, you'd upload this file and get a URL
-      const url = URL.createObjectURL(file);
-      setFormData({
-        ...formData,
-        thumbnailUrl: url,
-        thumbnailAlt: `${formData.name} thumbnail`,
+  const handleThumbnailUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    setThumbnailUploading(true);
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append("images", files[0]);
+      formDataUpload.append("imageType", "thumbnail");
+
+      const response = await fetch("/api/products/upload", {
+        method: "POST",
+        credentials: "include",
+        body: formDataUpload,
       });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setThumbnailImage(data.data);
+        // Clear the file input
+        const fileInput = document.querySelector('input[type="file"]:not([multiple])') as HTMLInputElement;
+        if (fileInput) fileInput.value = '';
+      } else {
+        alert(data.message || "Failed to upload thumbnail");
+      }
+    } catch (error) {
+      console.error("Thumbnail upload error:", error);
+      alert("Failed to upload thumbnail");
+    } finally {
+      setThumbnailUploading(false);
     }
   };
 
-  const handleProductImagesChange = (files: FileList | null) => {
-    if (files) {
-      const newImages = Array.from(files).map((file, index) => ({
-        url: URL.createObjectURL(file), // In real app, upload and get actual URL
-        alt: `${formData.name} view ${index + 1}`,
-      }));
-      setProductImages(newImages);
+  const handleGalleryUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    setGalleryUploading(true);
+    try {
+      const formDataUpload = new FormData();
+      Array.from(files).forEach((file) => {
+        formDataUpload.append("images", file);
+      });
+      formDataUpload.append("imageType", "gallery");
+
+      const response = await fetch("/api/products/upload", {
+        method: "POST",
+        credentials: "include",
+        body: formDataUpload,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Add new images to existing gallery images instead of replacing
+        setGalleryImages(prevImages => [...prevImages, ...data.data]);
+        // Clear the file input
+        const fileInput = document.querySelector('input[type="file"][multiple]') as HTMLInputElement;
+        if (fileInput) fileInput.value = '';
+      } else {
+        alert(data.message || "Failed to upload gallery images");
+      }
+    } catch (error) {
+      console.error("Gallery upload error:", error);
+      alert("Failed to upload gallery images");
+    } finally {
+      setGalleryUploading(false);
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const removeGalleryImage = (index: number) => {
+    setGalleryImages(galleryImages.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Construct the product object matching the products.ts structure
+    if (!thumbnailImage) {
+      alert("Please upload a thumbnail image");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    // Construct the product object matching the API schema
     const productData = {
-      id: Date.now(), // In real app, this would be generated by backend
       name: formData.name,
       slug: formData.slug,
       category: formData.category,
 
       thumbnail: {
-        url: formData.thumbnailUrl,
-        alt: formData.thumbnailAlt,
+        url: thumbnailImage.url,
+        alt: thumbnailImage.alt,
       },
 
-      images: productImages,
+      images: galleryImages.map((img) => ({
+        url: img.url,
+        alt: img.alt,
+      })),
 
       rating: parseFloat(formData.rating),
 
@@ -134,8 +202,31 @@ export default function AddProductPage() {
       status: formData.status,
     };
 
-    console.log("Product Data:", productData);
-    // Here you would send this data to your API
+    try {
+      const response = await fetch("/api/products", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(productData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert("Product created successfully!");
+        // Reset form or redirect
+        window.location.href = "/dashboard/products";
+      } else {
+        alert(data.error || "Failed to create product");
+      }
+    } catch (error) {
+      console.error("Error creating product:", error);
+      alert("Failed to create product");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   return (
     <div className="space-y-6">
@@ -255,32 +346,114 @@ export default function AddProductPage() {
               Product Images
             </h3>
 
-            <div className="space-y-4">
-              <CustomInput
-                label="Product Thumbnail Image"
-                id="thumbnailImage"
-                name="thumbnailImage"
-                type="file"
-                accept="image/*"
-                onFileChange={handleThumbnailChange}
-                border="border border-gray-300 rounded-lg"
-                backgroundColor="bg-white"
-                padding="py-3 px-4"
-                required
-              />
+            <div className="space-y-8">
+              {/* Thumbnail Image Upload */}
+              <div className="p-4 bg-white rounded-lg border border-blue-200">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Product Thumbnail Image (Single) <span className="text-red-500">*</span>
+                </label>
+                <p className="text-sm text-gray-500 mb-3">
+                  Upload one main image that will be used as the product thumbnail.
+                </p>
+                <div className="space-y-3">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleThumbnailUpload(e.target.files)}
+                    disabled={thumbnailUploading}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {thumbnailUploading && (
+                    <div className="flex items-center space-x-2 text-blue-600">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                      <span className="text-sm">Uploading thumbnail...</span>
+                    </div>
+                  )}
+                  {thumbnailImage && (
+                    <div>
+                      <span className="text-sm font-medium text-gray-700 block mb-2">Thumbnail Preview:</span>
+                      <div className="relative inline-block">
+                        <Image
+                          src={thumbnailImage.url}
+                          alt={thumbnailImage.alt}
+                          width={150}
+                          height={150}
+                          className="rounded-lg border border-gray-300 object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setThumbnailImage(null)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
 
-              <CustomInput
-                label="Product Images (Multiple)"
-                id="productImages"
-                name="productImages"
-                type="file"
-                accept="image/*"
-                multiple
-                onFileChange={handleProductImagesChange}
-                border="border border-gray-300 rounded-lg"
-                backgroundColor="bg-white"
-                padding="py-3 px-4"
-              />
+              {/* Gallery Images Upload */}
+              <div className="p-4 bg-white rounded-lg border border-green-200">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Product Gallery Images (Multiple)
+                </label>
+                <p className="text-sm text-gray-500 mb-3">
+                  Select multiple images at once or upload them in batches. You can add more images later.
+                </p>
+                <div className="space-y-3">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => handleGalleryUpload(e.target.files)}
+                    disabled={galleryUploading}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {galleryUploading && (
+                    <div className="flex items-center space-x-2 text-blue-600">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                      <span className="text-sm">Uploading gallery images...</span>
+                    </div>
+                  )}
+                  {galleryImages.length > 0 && (
+                    <div>
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-sm font-medium text-gray-700">
+                          Gallery Images ({galleryImages.length})
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setGalleryImages([])}
+                          className="text-sm text-red-600 hover:text-red-800"
+                        >
+                          Clear All
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {galleryImages.map((image, index) => (
+                          <div key={index} className="relative">
+                            <Image
+                              src={image.url}
+                              alt={image.alt}
+                              width={120}
+                              height={120}
+                              className="rounded-lg border border-gray-300 object-cover w-full h-24"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeGalleryImage(index)}
+                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -491,19 +664,30 @@ export default function AddProductPage() {
           <div className="flex gap-4 pt-6">
             <button
               type="submit"
-              className="bg-blue-500 text-white px-8 py-3 rounded-lg hover:bg-blue-600 font-medium"
+              disabled={isSubmitting || thumbnailUploading || galleryUploading}
+              className="bg-blue-500 text-white px-8 py-3 rounded-lg hover:bg-blue-600 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
             >
-              Add Product
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>Creating Product...</span>
+                </>
+              ) : (
+                <span>Add Product</span>
+              )}
             </button>
             <button
               type="button"
-              className="bg-gray-300 text-gray-700 px-8 py-3 rounded-lg hover:bg-gray-400 font-medium"
+              disabled={isSubmitting}
+              className="bg-gray-300 text-gray-700 px-8 py-3 rounded-lg hover:bg-gray-400 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Save as Draft
             </button>
             <button
               type="button"
-              className="bg-red-100 text-red-700 px-8 py-3 rounded-lg hover:bg-red-200 font-medium"
+              disabled={isSubmitting}
+              onClick={() => window.location.href = "/dashboard/products"}
+              className="bg-red-100 text-red-700 px-8 py-3 rounded-lg hover:bg-red-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>

@@ -34,22 +34,32 @@ export default function AddEmailTemplatePage() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const templateData = {
-      id: Date.now(),
-      name: formData.name,
-      subject: formData.subject,
-      message: formData.message,
-      type: formData.type,
-      status: formData.status,
-      createdAt: new Date().toISOString(),
-      lastModified: new Date().toISOString(),
-    };
-    
-    console.log('Email Template Data:', templateData);
-    // Here you would send this data to your API
+    try {
+      const response = await fetch("/api/email-templates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert("Email template created successfully!");
+        // Redirect to templates list
+        window.location.href = "/dashboard/email-templates";
+      } else {
+        alert(data.error || "Failed to create email template");
+      }
+    } catch (error) {
+      console.error("Error creating email template:", error);
+      alert("Failed to create email template");
+    }
   };
 
   return (
@@ -152,11 +162,11 @@ export default function AddEmailTemplatePage() {
               <h4 className="font-medium text-green-800 mb-2">Available Template Variables:</h4>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm text-green-700">
                 <div><code>{'{{name}}'}</code> - Customer name</div>
-                <div><code>{'{{email}}'}</code> - Customer email</div>
+                {/* <div><code>{'{{email}}'}</code> - Customer email</div>
                 <div><code>{'{{phone}}'}</code> - Customer phone</div>
                 <div><code>{'{{company}}'}</code> - Company name</div>
                 <div><code>{'{{project}}'}</code> - Project name</div>
-                <div><code>{'{{date}}'}</code> - Current date</div>
+                <div><code>{'{{date}}'}</code> - Current date</div> */}
               </div>
               <p className="text-xs text-green-600 mt-2">
                 Use these variables in your message and they will be automatically replaced with actual values when sending emails.

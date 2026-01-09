@@ -24,6 +24,15 @@ function LoginForm() {
   // Handle redirect after authentication
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
+      // Check for stored redirect from AddToCartButton
+      const storedRedirect = localStorage.getItem("redirectAfterLogin");
+      if (storedRedirect) {
+        localStorage.removeItem("redirectAfterLogin");
+        router.replace(storedRedirect);
+        return;
+      }
+      
+      // Check URL params for redirect
       const redirectTo = searchParams?.get('redirect') || '/dashboard';
       router.replace(redirectTo);
     }

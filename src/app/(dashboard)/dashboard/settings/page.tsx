@@ -56,9 +56,9 @@ export default function SettingsPage() {
 
   const tabs = [
     { id: 'general', name: 'General', icon: '⚙️' },
-    { id: 'security', name: 'Security', icon: '🔒' },
-    { id: 'notifications', name: 'Notifications', icon: '🔔' },
-    { id: 'privacy', name: 'Privacy', icon: '🛡️' }
+    // { id: 'security', name: 'Security', icon: '🔒' },
+    // { id: 'notifications', name: 'Notifications', icon: '🔔' },
+    // { id: 'privacy', name: 'Privacy', icon: '🛡️' }
   ];
 
   return (

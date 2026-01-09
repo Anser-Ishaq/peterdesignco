@@ -20,6 +20,7 @@ import {
   ChevronRightIcon,
   EditIcon,
   CareerIcon,
+  QueriesIcon,
 } from "@/app/components/ui/icons";
 
 // Type definitions for navigation items
@@ -53,6 +54,11 @@ const adminNavItems: NavItem[] = [
     name: "Dashboard",
     href: "/dashboard",
     icon: <DashboardIcon />,
+  },
+  {
+    name: "Queries",
+    href: "/dashboard/queries",
+    icon: <QueriesIcon />,
   },
   {
     name: "Products",
@@ -89,27 +95,49 @@ const adminNavItems: NavItem[] = [
     ],
   },
   {
-    name: "Courses",
+    name: "Testimonials",
     icon: <CourseIcon />,
     hasDropdown: true,
     subItems: [
       {
-        name: "Course List",
-        href: "/dashboard/courses",
+        name: "Testimonial List",
+        href: "/dashboard/testimonials",
         icon: <ListIcon />,
       },
       {
-        name: "Create Course",
-        href: "/dashboard/courses/create",
-        icon: <EditIcon />,
+        name: "Add Testimonial",
+        href: "/dashboard/testimonials/add",
+        icon: <PlusIcon />,
       },
     ],
   },
+  // {
+  //   name: "Courses",
+  //   icon: <CourseIcon />,
+  //   hasDropdown: true,
+  //   subItems: [
+  //     {
+  //       name: "Course List",
+  //       href: "/dashboard/courses",
+  //       icon: <ListIcon />,
+  //     },
+  //     {
+  //       name: "Create Course",
+  //       href: "/dashboard/courses/create",
+  //       icon: <EditIcon />,
+  //     },
+  //   ],
+  // },
   {
     name: "Careers",
     icon: <CareerIcon />,
     hasDropdown: true,
     subItems: [
+      {
+        name: "Applicants",
+        href: "/dashboard/applicants",
+        icon: <ListIcon />,
+      },
       {
         name: "Career List",
         href: "/dashboard/careers",
@@ -132,11 +160,11 @@ const adminNavItems: NavItem[] = [
         href: "/dashboard/leads",
         icon: <ListIcon />,
       },
-      {
-        name: "Add Lead",
-        href: "/dashboard/leads/add",
-        icon: <PlusIcon />,
-      },
+      // {
+      //   name: "Add Lead",
+      //   href: "/dashboard/leads/add",
+      //   icon: <PlusIcon />,
+      // },
     ],
   },
   {
@@ -156,23 +184,23 @@ const adminNavItems: NavItem[] = [
       },
     ],
   },
-  {
-    name: "Model Template",
-    icon: <ModelIcon />,
-    hasDropdown: true,
-    subItems: [
-      {
-        name: "Model List",
-        href: "/dashboard/model-templates",
-        icon: <ListIcon />,
-      },
-      {
-        name: "Upload Model",
-        href: "/dashboard/model-templates/add",
-        icon: <PlusIcon />,
-      },
-    ],
-  },
+  // {
+  //   name: "Model Template",
+  //   icon: <ModelIcon />,
+  //   hasDropdown: true,
+  //   subItems: [
+  //     {
+  //       name: "Model List",
+  //       href: "/dashboard/model-templates",
+  //       icon: <ListIcon />,
+  //     },
+  //     {
+  //       name: "Upload Model",
+  //       href: "/dashboard/model-templates/add",
+  //       icon: <PlusIcon />,
+  //     },
+  //   ],
+  // },
 ];
 
 // Navigation items for regular users
@@ -181,6 +209,11 @@ const userNavItems: NavItem[] = [
     name: "Dashboard",
     href: "/dashboard",
     icon: <DashboardIcon />,
+  },
+  {
+    name: "My Cart",
+    href: "/dashboard/cart",
+    icon: <ProductIcon />,
   },
   {
     name: "My Orders",
@@ -192,11 +225,11 @@ const userNavItems: NavItem[] = [
     href: "/dashboard/profile",
     icon: <UserIcon />,
   },
-  {
-    name: "Settings",
-    href: "/dashboard/settings",
-    icon: <SettingsIcon />,
-  },
+  // {
+  //   name: "Settings",
+  //   href: "/dashboard/settings",
+  //   icon: <SettingsIcon />,
+  // },
 ];
 
 interface SidebarProps {
@@ -216,9 +249,9 @@ export default function Sidebar({
   const navItems = userRole === "admin" ? adminNavItems : userNavItems;
 
   const toggleDropdown = (itemName: string) => {
-    setOpenDropdowns(prev => 
-      prev.includes(itemName) 
-        ? prev.filter(name => name !== itemName)
+    setOpenDropdowns((prev) =>
+      prev.includes(itemName)
+        ? prev.filter((name) => name !== itemName)
         : [...prev, itemName]
     );
   };
@@ -254,7 +287,9 @@ export default function Sidebar({
           {navItems.map((item) => {
             const hasDropdown = item.hasDropdown && item.subItems;
             const isActive = item.href ? pathname === item.href : false;
-            const hasActiveSubItem = hasDropdown && item.subItems?.some(subItem => pathname === subItem.href);
+            const hasActiveSubItem =
+              hasDropdown &&
+              item.subItems?.some((subItem) => pathname === subItem.href);
             const dropdownOpen = isDropdownOpen(item.name);
 
             return (
@@ -277,12 +312,14 @@ export default function Sidebar({
                         )}
                       </div>
                       {!collapsed && (
-                        <ChevronDownIcon 
-                          className={`transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}
+                        <ChevronDownIcon
+                          className={`transition-transform ${
+                            dropdownOpen ? "rotate-180" : ""
+                          }`}
                         />
                       )}
                     </button>
-                    
+
                     {/* Dropdown Items */}
                     {!collapsed && dropdownOpen && (
                       <ul className="ml-4 mt-1 space-y-1">
@@ -299,7 +336,9 @@ export default function Sidebar({
                                 }`}
                               >
                                 <span className="mr-2">{subItem.icon}</span>
-                                <span className="text-sm font-medium">{subItem.name}</span>
+                                <span className="text-sm font-medium">
+                                  {subItem.name}
+                                </span>
                               </Link>
                             </li>
                           );
@@ -328,15 +367,6 @@ export default function Sidebar({
           })}
         </ul>
       </nav>
-
-      {/* Footer */}
-      <div className="p-4 border-t border-gray-200">
-        {!collapsed && (
-          <div className="text-sm text-gray-500">
-            Role: <span className="font-medium capitalize">{userRole}</span>
-          </div>
-        )}
-      </div>
     </div>
   );
 }

@@ -82,7 +82,7 @@ const Slider = (props: SliderProps) => {
                             <SwiperSlide key={item.id} className="p-6 bg-gray rounded-2xl">
                                 <div className="flex flex-col gap-5">
                                     <div className="flex justify-between items-center">
-                                        <Image src={item.imgSrc} width={80} height={80} alt={item.name} />
+                                        <Image src={item.imgSrc} width={80} height={80} alt={item.name} className='rounded-full' />
                                         <div className="flex gap-1">
                                             {Array.from({ length: item.stars }).map((_, i) => (
                                                 <Image key={i} src="/star.svg" width={20} height={20} alt="star" />

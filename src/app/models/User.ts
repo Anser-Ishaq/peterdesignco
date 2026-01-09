@@ -5,6 +5,8 @@ export interface IUser extends Document {
   name: string;
   email: string;
   password: string;
+  phone?: string;
+  bio?: string;
   role: "User" | "Admin";
   isVerified: boolean;
   createdAt: Date;
@@ -36,6 +38,16 @@ const UserSchema = new Schema<IUser>(
       type: String,
       required: [true, "Password is required"],
       minlength: [6, "Password must be at least 6 characters long"],
+    },
+    phone: {
+      type: String,
+      trim: true,
+      match: [/^[\+]?[1-9][\d]{0,15}$/, "Please enter a valid phone number"],
+    },
+    bio: {
+      type: String,
+      trim: true,
+      maxlength: [500, "Bio cannot exceed 500 characters"],
     },
     role: {
       type: String,

@@ -25,7 +25,7 @@ export interface UploadOptions {
 }
 
 /**
- * Upload image to Cloudinary
+ * Upload file to Cloudinary (supports images and 3D models)
  * @param file - File buffer
  * @param options - Upload options
  * @returns Promise with upload result
@@ -35,40 +35,48 @@ export async function uploadToCloudinary(
   options: UploadOptions = {}
 ): Promise<CloudinaryUploadResult> {
   try {
-    // Simple, reliable configuration for free tier
+    // Determine resource type based on file format
+    const isModel = options.format === 'glb' || options.format === 'gltf';
+    
+    // Configuration for different file types
     const uploadOptions = {
-      folder: options.folder || 'team-members',
+      folder: options.folder || (isModel ? '3d-models' : 'team-members'),
       quality: options.quality || 'auto:good',
-      transformation: options.transformation || [
+      transformation: isModel ? undefined : (options.transformation || [
         { 
           width: 800, 
           height: 800, 
           crop: 'fill', 
           gravity: 'face'
         }
-      ],
-      resource_type: 'image' as const,
+      ]),
+      resource_type: isModel ? 'raw' as const : 'image' as const,
       overwrite: true,
       invalidate: true,
     };
 
-    // Convert Buffer to base64 string
-    const fileToUpload = `data:image/jpeg;base64,${file.toString('base64')}`;
+    // Convert Buffer to base64 string with appropriate MIME type
+    let fileToUpload: string;
+    if (isModel) {
+      fileToUpload = `data:model/gltf-binary;base64,${file.toString('base64')}`;
+    } else {
+      fileToUpload = `data:image/jpeg;base64,${file.toString('base64')}`;
+    }
 
     const result = await cloudinary.uploader.upload(fileToUpload, uploadOptions);
 
     return {
       public_id: result.public_id,
       secure_url: result.secure_url,
-      width: result.width,
-      height: result.height,
+      width: result.width || 0,
+      height: result.height || 0,
       format: result.format,
       resource_type: result.resource_type,
       bytes: result.bytes,
     };
   } catch (error) {
     console.error('Cloudinary upload error:', error);
-    throw new Error('Failed to upload image to Cloudinary');
+    throw new Error('Failed to upload file to Cloudinary');
   }
 }
 

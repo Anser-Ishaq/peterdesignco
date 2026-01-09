@@ -8,6 +8,10 @@ import { getUserFromRequest } from '@/app/lib/auth';
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
+    
+    // Ensure models are registered
+    User;
+    Team;
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || 'active';
@@ -70,6 +74,12 @@ export async function GET(request: NextRequest) {
 // POST /api/team - Add new team member (Admin only)
 export async function POST(request: NextRequest) {
   try {
+    await connectDB();
+    
+    // Ensure models are registered
+    User;
+    Team;
+    
     // Check authentication and admin role
     const user = getUserFromRequest(request);
     if (!user) {
