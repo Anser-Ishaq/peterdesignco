@@ -136,9 +136,9 @@ export default function TeamDetailPage({ params }: Props) {
       {/* portfolio section */}
       <div className="container mx-auto px-4 pt-[80px] md:pt-[140px]">
         <div>
-          <p className="text-base font-medium mb-5">LATEST PROJECTS</p>
+          <p className="text-base font-medium mb-5">PDC Files</p>
           <p className="text-xl md:text-4xl font-bold mb-10">
-            Made It With Passion.
+            ARCHI-TACTS by PeterDesignCo.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-[200px]">
             {latestProjectArr.map((item, index) => (

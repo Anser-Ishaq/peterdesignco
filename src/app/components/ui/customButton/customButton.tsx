@@ -13,12 +13,12 @@ type buttonProps = {
 }
 
 const CustomButton = ({ layout,
-    border,
+    border='border border-black',
     width,
     height,
     text,
     onClick,
-    backgroundColor = 'bg-gold',
+    backgroundColor = 'bg-gray',
     textColor = 'text-black',
     padding = 'py-3 px-8',
     icon }: buttonProps) => {
@@ -34,7 +34,7 @@ const CustomButton = ({ layout,
                 <span className="absolute inset-0 bg-gray transform -translate-x-full group-hover:translate-x-0 transition-transform duration-500 ease-out"></span>
                 
                 {/* Text content */}
-                <span className="relative z-10 transition-colors duration-500 group-hover:text-gold">
+                <span className="relative z-10 transition-colors duration-500 group-hover:text-black">
                     {text}
                 </span>
                 

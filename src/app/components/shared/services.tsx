@@ -23,13 +23,13 @@ const Services = () => {
                     <div className="container mx-auto px-4">
                         <div className=" lg:mt-[116px]">
                             <p className="text-base font-medium mb-5 text-white">SERVICES</p>
-                            <p className="text-2xl md:text-4xl font-bold mb-10 text-white">Our Services</p>
+                            <p className="text-2xl md:text-4xl font-extralight mb-10 text-white">Our Services</p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                 {servicesArr.map((item) => (
                                     <div key={item.id} className="flex flex-col justify-start items-start gap-[50px] bg-white px-5 pt-[60px] pb-[30px] shadow-2xl">
                                         <Image src={item.src} width={80} height={80} alt={item.title} className="" />
                                         <p className="font-semibold text-black text-xl">{item.title}</p>
-                                        <CustomButton text="Let's Start" icon="/arrow-forward.svg" backgroundColor={'bg-transparent!'} border={'border-0'} padding={'px-0 py-3'} animation="slide" />
+                                        <CustomButton text="Let's Start" icon="/arrow-forward.svg" backgroundColor={'bg-transparent!'} border={'border-0'} padding={'px-0 py-3'} />
                                     </div>
                                 ))}
                             </div>

@@ -66,11 +66,11 @@ export default function AboutPage() {
                     src="/about-bg.svg"
                     alt="About Image"
                     fill
-                    className="object-cover opacity-90"
+                    className="object-cover brightness-25"
                 />
                 <div className="absolute top-2/5 z-20 w-full flex flex-col gap-6 justify-center items-center text-white">
-                    <p className="font-medium text-base">ABOUT OUR ARCHITECTS</p>
-                    <p className="font-bold text-2xl lg:text-5xl text-center max-w-[800px]">We are based on collective work and shared knowledge</p>
+                    <p className="font-medium text-base">We Sketch. We Debate. We Build.</p>
+                    <p className="font-extralight text-2xl lg:text-5xl text-center max-w-[800px]">Where Chaos Becomes Iconic.</p>
                 </div>
             </div>
 
@@ -78,11 +78,11 @@ export default function AboutPage() {
             <div>
                 <ContentBlock
                     imgSrc="/ceo1.png"
-                    heading="Welcome to CAD-CONS"
+                    heading="Welcome to PDC"
                     subHeading="CEO Message"
                     paragraphs={[
                         { id: 1, text: "As the CEO and lead designer, I'm thrilled to share our passion for creating beautiful, functional, and inspiring spaces with you. With 10 years of experience in interior design, we've had the privilege of working with clients." },
-                        { id: 2, text: 'At CAD-CONS, we believe that interior design is not just about aesthetics; its about creating environments that enhance lives and foster connections. Our team is dedicated to delivering exceptional design solutions that exceed our clients expectations, on time and within budget.' },
+                        { id: 2, text: 'At PETER DESIGN CO., we believe that interior design is not just about aesthetics; its about creating environments that enhance lives and foster connections. Our team is dedicated to delivering exceptional design solutions that exceed our clients expectations, on time and within budget.' },
                         { id: 3, text: 'We are committed to staying at the forefront of design trends, technologies, and sustainability practices, ensuring that our clients receive innovative and forward-thinking solutions.' }
                     ]}
                     reverse={true}
@@ -96,8 +96,8 @@ export default function AboutPage() {
                 <ContentBlock
                     imgSrc="/decor.svg"
                     imgWidth="w-full"
-                    heading="Make with love all what we do."
-                    subHeading="NUMBERS"
+                    heading="Design With a Soul"
+                    subHeading="OUR PHILOSOPHY"
                     paragraphs={[
                         { id: 1, text: "Our team takes over everything, from an idea and concept development to realization. We believe in traditions and incorporate them within our innovations. All our projects incorporate a unique artistic image and functional solutions." },
                         { id: 2, text: 'Client is the soul of the project. Our main goal is to illustrate his/hers values and individuality.' },

@@ -67,7 +67,7 @@ const ContactForm = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-2">
                     <div className="flex flex-col justify-start items-start">
                         <p className="text-base font-medium mb-5 text-black">Contact Us</p>
-                        <p className="text-2xl md:text-4xl font-bold mb-10 text-black">Lets Start a New Project</p>
+                        <p className="text-2xl md:text-4xl font-extralight mb-10 text-black">Lets Start a New Project</p>
                         <p className="lg:w-90 font-normal text-xl mb-20">
                             Ready to transform your space? Get in touch with our expert design team to discuss your project requirements and bring your vision to life.
                         </p>
@@ -75,7 +75,7 @@ const ContactForm = () => {
                             <div>
                                 <p className="font-semibold">Phone Number</p>
                                 <p>+92 309 6737252</p>
-                                <p>+92 336 6134347</p>
+                                <p>+92 309 2607607</p>
                             </div>
                             <div>
                                 <p className="font-semibold">Email</p>
@@ -140,7 +140,7 @@ const ContactForm = () => {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full bg-gold text-white py-3 px-6 rounded-lg hover:bg-gold/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                className="border border-black w-full bg-gray text-black py-3 px-6  disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
                                 {loading ? 'Sending...' : 'Submit'}
                                 {!loading && (

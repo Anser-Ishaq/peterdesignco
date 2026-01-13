@@ -50,8 +50,8 @@ const Navbar = () => {
 
     return (
         <>
-            <div className='fixed top-0 flex items-center justify-center z-50 w-full'>
-                <div className='mx-auto px-4 flex justify-between items-center w-full py-5 bg-white/30 backdrop-blur-sm'>
+            <div className='absolute flex items-center justify-center z-50 w-full'>
+                <div className='mx-auto px-4 flex justify-between items-center w-full py-5 '>
                     <div>
                         <Image
                             src="/logo.svg"

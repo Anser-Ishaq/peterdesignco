@@ -47,7 +47,7 @@ const ContentBlock: React.FC<ContentBlockProps> = ({
             alt="Block Image"
             height={100}
             width={555}
-            className={`object-cover border-8 lg:border-12 border-gold ${imgWidth}`}
+            className={`object-cover border-4 border-[#8b8b8b] ${imgWidth}`}
           />
         </div>
 
@@ -57,7 +57,7 @@ const ContentBlock: React.FC<ContentBlockProps> = ({
             <p className="text-base font-medium text-black mb-5">{subHeading}</p>
           )}
 
-          <p className="text-xl sm:text-5xl font-bold text-black mb-10">{heading}</p>
+          <p className="text-xl sm:text-5xl font-extralight text-black mb-10">{heading}</p>
 
           {paragraphs?.map((p) => (
             <p key={p.id} className="text-base font-normal mb-6 w-full lg:max-w-[80%]">

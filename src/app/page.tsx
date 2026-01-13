@@ -47,7 +47,7 @@ const Home = () => {
         imgSrc="/decor.svg"
         imgWidth={'w-full'}
         heading="About Peter Design Co."
-        subHeading="About Us"
+        subHeading="Legacy of Desgin, Future of Inovation"
         paragraphs={[
           { id: 1, text: "We are a leading turnkey interior design and fit-out company in Pakistan, specializing in turnkey projects. We provide the best turnkey interior design and fit-out services in Pakistan, with extensive experience working on various types of premise." },
         ]}
@@ -101,7 +101,7 @@ const Home = () => {
           <div className="md:col-span-2 flex flex-col justify-between">
             <div className="flex flex-col gap-4">
               <p className="text-base font-medium">feature model</p>
-              <p className="text-xl md:text-4xl font-bold">Make it with passion.</p>
+              <p className="text-xl md:text-4xl font-extralight">Make it with passion.</p>
             </div>
             <div className="relative hidden md:flex flex-row-reverse justify-end items-center gap-5">
               <p className="text-base font-medium">3d preview modelist living house</p>
@@ -109,7 +109,7 @@ const Home = () => {
             </div>
             <div className="flex flex-wrap gap-2">
               <CustomButton text="BUY NOW" icon="/arrow-forward.svg" />
-              <CustomButton text="DESIGN YOUR OWN" icon="/arrow-forward.svg" backgroundColor={'bg-transparent!'} border={'border-1 border-gold'} />
+              <CustomButton text="DESIGN YOUR OWN" icon="/arrow-forward.svg" />
             </div>
           </div>
         </div>
@@ -120,8 +120,8 @@ const Home = () => {
       {/* portfolio section */}
       <div className="container mx-auto px-4 pt-[80px] md:pt-[140px]">
         <div>
-          <p className="text-base font-medium mb-5">LATEST PROJECTS</p>
-          <p className="text-xl md:text-4xl font-bold mb-10">Made It With Passion.</p>
+          <p className="text-base font-medium mb-5">PDC Files</p>
+          <p className="text-xl md:text-4xl font-extralight mb-10">ARCHI-TACTS by PeterDesignCo.</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-[200px]">
             {latestProjectArr.map((item, index) => (
               <div
@@ -160,7 +160,7 @@ const Home = () => {
         <div className="container mx-auto px-4 py-[140px]">
           <div className="flex flex-col justify-center items-center">
             <p className="text-base font-medium mb-5 text-black">FAQs</p>
-            <p className="text-2xl md:text-4xl font-bold mb-10 text-black">Frequently Asked Questions</p>
+            <p className="text-2xl md:text-4xl font-extralight mb-10 text-black">Answers You’re Looking For</p>
             <Accordion />
           </div>
         </div>

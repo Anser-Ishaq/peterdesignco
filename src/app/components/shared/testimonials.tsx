@@ -86,7 +86,7 @@ const Testimonials = () => {
       <div>
         <div className="flex flex-col justify-center items-center">
           <p className="text-base font-medium mb-5 text-black">TESTIMONIALS</p>
-          <p className="text-2xl md:text-4xl font-bold mb-10 text-black">What Our Client Say's</p>
+          <p className="text-2xl md:text-4xl font-extralight mb-10 text-black">Voices Behind Our Success</p>
         </div>
         <div>
           {loading ? (
