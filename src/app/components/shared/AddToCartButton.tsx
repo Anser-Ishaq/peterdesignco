@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAuth } from "@/app/hooks/useAuth";
 import { useRouter } from "next/navigation";
+// import { setRedirectAfterLogin } from "@/app/utils/redirectUtils";
 
 interface AddToCartButtonProps {
   productId: string;
@@ -21,15 +22,22 @@ export default function AddToCartButton({
   className = "",
   quantity = 1,
 }: AddToCartButtonProps) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   const handleAddToCart = async () => {
+    // Wait for auth loading to complete
+    if (isLoading) {
+      return;
+    }
+
     // Check authentication
     if (!isAuthenticated) {
+      // Clear any stale cookies that might be causing middleware issues
+      document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       // Store the current page to redirect back after login
-      localStorage.setItem("redirectAfterLogin", window.location.pathname);
+      // setRedirectAfterLogin(window.location.pathname);
       router.push("/login");
       return;
     }
@@ -81,7 +89,7 @@ export default function AddToCartButton({
     }
   };
 
-  const isDisabled = stockStatus === "out_of_stock" || loading;
+  const isDisabled = stockStatus === "out_of_stock" || loading || isLoading;
 
   return (
     <button
@@ -96,7 +104,12 @@ export default function AddToCartButton({
         px-6 py-2 rounded-lg font-medium transition-colors
       `}
     >
-      {loading ? (
+      {isLoading ? (
+        <div className="flex items-center space-x-2">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+          <span>Loading...</span>
+        </div>
+      ) : loading ? (
         <div className="flex items-center space-x-2">
           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
           <span>Adding...</span>

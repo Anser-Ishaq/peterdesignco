@@ -215,11 +215,11 @@ const userNavItems: NavItem[] = [
     href: "/dashboard/cart",
     icon: <ProductIcon />,
   },
-  {
-    name: "My Orders",
-    href: "/dashboard/leads",
-    icon: <LeadsIcon />,
-  },
+  // {
+  //   name: "My Orders",
+  //   href: "/dashboard/leads",
+  //   icon: <LeadsIcon />,
+  // },
   {
     name: "Profile",
     href: "/dashboard/profile",
