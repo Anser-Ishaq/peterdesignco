@@ -38,10 +38,19 @@ export async function connectDB() {
       })
       .catch((error) => {
         console.error("❌ MongoDB: Connection failed", error);
+        // Reset the cached promise so the next request can retry.
+        // Otherwise a single failed attempt (e.g. paused cluster) keeps
+        // throwing forever until the server is restarted.
+        cached.promise = null;
         throw error;
       });
   }
 
-  cached.conn = await cached.promise;
+  try {
+    cached.conn = await cached.promise;
+  } catch (error) {
+    cached.promise = null;
+    throw error;
+  }
   return cached.conn;
 }
